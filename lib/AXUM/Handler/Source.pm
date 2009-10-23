@@ -66,6 +66,7 @@ sub _col {
      $d->{use_insert_preset} ||
      $d->{use_eq_preset} ||
      $d->{use_dyn_preset} ||
+     $d->{use_mod_preset} ||
      $d->{use_routing_preset}) ? ('used') : (class => 'off', 'not used');
   }
   if($n eq 'insert_source') {
@@ -87,6 +88,10 @@ sub _col {
   if($n eq 'dyn_amount') {
     a href => '#', onclick => sprintf('return conf_proc("source", %d, "dyn_amount", %d, this)', $d->{number}, $v),
       sprintf '%d%%', $v;
+  }
+  if($n eq 'mod_lvl') {
+    a href => '#', onclick => sprintf('return conf_level("source", %d, "%s" , %f, this)', $d->{number}, $n, $v),
+      sprintf '%.1f dB', $v;
   }
   if($n =~ /use_.+/) {
     a href => '#', onclick => sprintf('return conf_set("source", %d, "%s", %d, this)', $d->{number}, $n, $v?0:1),
@@ -205,7 +210,7 @@ sub source {
   my @cols = ((map "redlight$_", 1..8), (map "monitormute$_", 1..16));
   my $src = $self->dbAll(q|SELECT pos, number, label, input1_addr, input1_sub_ch, input2_addr,
     input2_sub_ch, input_phantom, input_pad, input_gain,
-    use_gain_preset, use_lc_preset, use_insert_preset, use_eq_preset, use_dyn_preset, use_routing_preset,
+    use_gain_preset, use_lc_preset, use_insert_preset, use_eq_preset, use_dyn_preset, use_mod_preset, use_routing_preset,
     !s FROM src_config ORDER BY pos|, join ', ', @cols);
 
   $self->htmlHeader(title => 'Source configuration', page => 'source');
@@ -389,6 +394,9 @@ sub preset {
          use_dyn_preset,
          dyn_amount,
          dyn_on_off,
+         use_mod_preset,
+         mod_lvl,
+         mod_on_off,
          use_routing_preset,
          routing_preset
          FROM src_config
@@ -485,6 +493,11 @@ sub preset {
     td; _col 'dyn_on_off', $src; end;
     td; _col 'dyn_amount', $src; end;
    end;
+   Tr; th 'Module';
+    td; _col 'use_mod_preset', $src; end;
+    td; _col 'mod_on_off', $src; end;
+    td; _col 'mod_lvl', $src; end;
+   end;
    Tr; th 'Routing';
     td; _col 'use_routing_preset', $src; end;
     td '-';
@@ -497,8 +510,8 @@ sub preset {
 sub ajax {
   my $self = shift;
 
-  my @booleans = qw|use_gain_preset use_lc_preset use_insert_preset use_phase_preset use_mono_preset use_eq_preset use_dyn_preset use_routing_preset
-                    lc_on_off insert_on_off phase_on_off mono_on_off eq_on_off dyn_on_off|;
+  my @booleans = qw|use_gain_preset use_lc_preset use_insert_preset use_phase_preset use_mono_preset use_eq_preset use_dyn_preset use_mod_preset use_routing_preset
+                    lc_on_off insert_on_off phase_on_off mono_on_off eq_on_off dyn_on_off mod_on_off|;
 
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
@@ -515,6 +528,7 @@ sub ajax {
     { name => 'phase', required => 0, template => 'int' },
     { name => 'mono', required => 0, template => 'int' },
     { name => 'dyn_amount', required => 0, template => 'int' },
+    { name => 'mod_lvl', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'routing_preset', required => 0, template => 'int' },
     (map +{ name => $_, required => 0, enum => [0,1] }, @booleans),
     (map +{ name => "redlight$_", required => 0, enum => [0,1] }, 1..8),
@@ -538,7 +552,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label input_phantom input_pad input_gain gain lc_frequency insert_source phase mono dyn_amount routing_preset|, (map($_, @booleans)), (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
+      for(qw|label input_phantom input_pad input_gain gain lc_frequency insert_source phase mono dyn_amount mod_lvl routing_preset|, (map($_, @booleans)), (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
     defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = ?, '.$_.'_sub_ch = ?'} = [ $1, $2 ])
       for('input1', 'input2');
 
