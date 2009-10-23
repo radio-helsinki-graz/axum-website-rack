@@ -55,6 +55,10 @@ sub _col {
   if ($n eq 'timezone') {
     a href => '#', onclick => sprintf('return conf_tz(this)'), $v ? ($v) : ('Select timezone');
   }
+  if ($n eq 'startup_state') {
+    a href => '#', onclick => sprintf('return conf_set("globalconf", 0, "startup_state", %d, this)', $v?0:1),
+      $v ? 'Backup of last situation' : 'Programmed defaults';
+  }
 }
 
 
@@ -62,7 +66,7 @@ sub conf {
   my $self = shift;
 
   my @cols = (map "routing_preset_${_}_label", 1..8);
-  my $conf = $self->dbRow('SELECT samplerate, ext_clock, headroom, level_reserve, auto_momentary, use_module_defaults,
+  my $conf = $self->dbRow('SELECT samplerate, ext_clock, headroom, level_reserve, auto_momentary, use_module_defaults, startup_state,
                            !s FROM global_config', join ', ', @cols);
 
   $self->htmlHeader(page => 'globalconf', title => 'Global configuration');
@@ -79,7 +83,9 @@ sub conf {
    Tr; th 'Headroom';      td sprintf '%.1f dB', $conf->{headroom}; end;
    Tr; th 'Fader top level'; td; _col 'level_reserve', $conf->{level_reserve}; end; end;
    Tr; th 'Auto momentary'; td; _col 'auto_momentary', $conf->{auto_momentary}; end; end;
-   Tr; th; lit 'If no source preset,<BR>use module defaults'; end; td; _col 'use_module_defaults', $conf->{use_module_defaults}; end; end;
+   Tr; th; lit 'If no source preset'; end; td rowspan => 2; _col 'use_module_defaults', $conf->{use_module_defaults}; end; end;
+   Tr; th; txt 'use module defaults'; end; end;
+   Tr; th 'Startup state'; td; _col 'startup_state', $conf->{startup_state}; end; end;
   end;
   br;
   table;
@@ -103,11 +109,12 @@ sub ajax {
     { name => 'level_reserve', required => 0, enum => [0,10] },
     { name => 'auto_momentary', required => 0, enum => [0,1] },
     { name => 'use_module_defaults', required => 0, enum => [0,1] },
+    { name => 'startup_state', required => 0, enum => [0,1] },
     (map +{ name => "routing_preset_${_}_label", required => 0, maxlength => 32, minlength => 1 }, 1..8),
   );
   return 404 if $f->{_err};
 
-  my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve use_module_defaults auto_momentary|, (map("routing_preset_${_}_label", 1..8));
+  my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve use_module_defaults startup_state auto_momentary|, (map("routing_preset_${_}_label", 1..8));
   $self->dbExec('UPDATE global_config !H', \%set) if keys %set;
   _col $f->{field}, $f->{$f->{field}};
 }
@@ -149,7 +156,7 @@ sub ipclock
   }
   close FILE;
 
-  $self->htmlHeader(page => 'ipclock', section => 'timezonde', title => "Timezone configuration");
+  $self->htmlHeader(page => 'ipclock', section => 'timezonde', title => "IP/Clock configuration");
 
   table;
   Tr; th colspan => 2, "IP"; end;
