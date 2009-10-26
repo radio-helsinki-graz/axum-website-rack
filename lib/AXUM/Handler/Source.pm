@@ -59,7 +59,6 @@ sub _col {
       sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel});
   }
   if ($n eq 'preset') {
-
     a href => "/source/$d->{number}/preset",
     ($d->{use_gain_preset} ||
      $d->{use_lc_preset} ||
@@ -91,7 +90,7 @@ sub _col {
   }
   if($n eq 'mod_lvl') {
     a href => '#', onclick => sprintf('return conf_level("source", %d, "%s" , %f, this)', $d->{number}, $n, $v),
-      sprintf '%.1f dB', $v;
+      $v < -120 ? (class => 'off', sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n =~ /use_.+/) {
     a href => '#', onclick => sprintf('return conf_set("source", %d, "%s", %d, this)', $d->{number}, $n, $v?0:1),

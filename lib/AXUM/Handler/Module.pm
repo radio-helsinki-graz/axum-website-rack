@@ -118,9 +118,13 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
       !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
   }
-  if($n eq 'gain' || $n eq 'mod_level') {
+  if($n eq 'gain') {
     a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
+  }
+  if($n eq 'mod_level') {
+    a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
+      $v < -120 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n =~ /.+_on_off/) {
     a href => '#', onclick => sprintf('return conf_set("module", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),

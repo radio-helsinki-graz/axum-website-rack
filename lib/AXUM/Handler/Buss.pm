@@ -36,7 +36,7 @@ sub _col {
   }
   if($n eq 'level') {
     a href => '#', onclick => sprintf('return conf_level("buss", %d, "level", %f, this)', $d->{number}, $v),
-      $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
+      $v == 0 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;

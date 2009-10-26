@@ -43,7 +43,7 @@ sub _col {
   }
   if($n eq 'dim_level') {
     a href => '#', onclick => sprintf('return conf_level("monitorbuss", %d, "dim_level", %f, this)', $d->{number}, $v),
-      $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
+      $v == -20 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n eq 'default_selection') {
     a href => '#', onclick => sprintf(
