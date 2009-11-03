@@ -215,7 +215,7 @@ sub change_conf {
   );
   return 404 if $f->{_err};
 
-  $self->dbExec("UPDATE addresses SET id.id = ?, refresh = TRUE WHERE addr = ? AND (id).man = ? AND (id).prod = ? AND firm_major = ?", $f->{id}, $f->{addr}, $f->{man}, $f->{prod}, $f->{firm_major});
+  $self->dbExec("UPDATE addresses SET id.id = ?, setname = TRUE, refresh = TRUE WHERE addr = ? AND (id).man = ? AND (id).prod = ? AND firm_major = ?", $f->{id}, $f->{addr}, $f->{man}, $f->{prod}, $f->{firm_major});
 
   txt 'Wait for refresh';
 }
