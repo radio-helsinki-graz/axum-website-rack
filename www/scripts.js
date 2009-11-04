@@ -6,7 +6,9 @@ function ajax(url, func) {
   for(i=0; i<http_requests.length; i++)
     if(http_requests[i] == null)
       break;
-  document.getElementById('loading').style.display = 'block';
+  if ((url != "/ajax/tz_lst") && (url.search(/^\/ajax\/func\?\S*/) != 0)) {
+    document.getElementById('loading').style.display = 'block';
+  }
   http_requests[i] = (window.ActiveXObject) ? new ActiveXObject('Microsoft.XMLHTTP') : new XMLHttpRequest();
   if(http_requests[i] == null) {
     alert("Your browse does not support the functionality this website requires.");
