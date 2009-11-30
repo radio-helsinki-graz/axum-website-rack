@@ -11,6 +11,7 @@ YAWF::register(
   qr{module/([1-9][0-9]*)} => \&conf,
   qr{ajax/module} => \&ajax,
   qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
+  qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
 );
 
 my @phase_types = ('Normal', 'Left', 'Right', 'Both');
@@ -25,14 +26,20 @@ sub overview {
 
   my $mod = $self->dbAll(q|
     SELECT m.number,
-      a.label AS label_a, a.active AS active_a, b.label AS label_b, b.active AS active_b,
-      c.label AS label_c, c.active AS active_c, d.label AS label_d, d.active AS active_d,
-      insert_on_off, lc_on_off, eq_on_off, dyn_on_off
+      a.label AS label_a, a.active AS active_a, pa.label AS label_a_preset,
+      b.label AS label_b, b.active AS active_b, pb.label AS label_b_preset,
+      c.label AS label_c, c.active AS active_c, pc.label AS label_c_preset,
+      d.label AS label_d, d.active AS active_d, pd.label AS label_d_preset,
+      m.insert_on_off, m.lc_on_off, m.eq_on_off, m.dyn_on_off
     FROM module_config m
     LEFT JOIN matrix_sources a ON a.number = m.source_a
     LEFT JOIN matrix_sources b ON b.number = m.source_b
     LEFT JOIN matrix_sources c ON c.number = m.source_c
     LEFT JOIN matrix_sources d ON d.number = m.source_d
+    LEFT JOIN src_preset pa ON pa.number = m.source_a_preset
+    LEFT JOIN src_preset pb ON pb.number = m.source_b_preset
+    LEFT JOIN src_preset pc ON pc.number = m.source_c_preset
+    LEFT JOIN src_preset pd ON pd.number = m.source_d_preset
     WHERE m.number >= ? AND m.number <= ?
     ORDER BY m.number|,
     $p*32-31, $p*32
@@ -64,7 +71,7 @@ sub overview {
         for (@m) {
           td;
            a href => "/module/$mod->[$_]{number}",
-            !$mod->[$_]{"active_$src"} || !$mod->[$_]{"label_$src"} || ($mod->[$_]{"label_$src"} eq 'none') ? (class => 'off') : (), $mod->[$_]{"label_$src"}||'none';
+            !$mod->[$_]{"active_$src"} || !$mod->[$_]{"label_$src"} || ($mod->[$_]{"label_$src"} eq 'none') ? (class => 'off') : (), $mod->[$_]{"label_$src"}.($mod->[$_]{"label_".$src."_preset"}?(' ('.$mod->[$_]{"label_".$src."_preset"}.')') : ()) ||'none';
           end;
         }
        end;
@@ -124,6 +131,17 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
       !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
+  if ($n =~ /source_[a|b|c|d]_preset/) {
+    my $s;
+    for my $l (@$lst) {
+      if ($l->{number} == $v)
+      {
+        $s = $l;
+      }
+    }
+    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "src_preset_list")', $d->{number}, $n, $v),
+      !$v ? (class => 'off') : (), $v ? $s->{label} : 'none';
+  }
   if($n eq 'gain') {
     a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
@@ -139,10 +157,6 @@ sub _col {
   if($n eq 'lc_frequency') {
     a href => '#', onclick => sprintf('return conf_freq("module", %d, "lc_frequency", %d, this)', $d->{number}, $v),
       sprintf '%d Hz', $v;
-  }
-  if($n eq 'dyn_amount') {
-    a href => '#', onclick => sprintf('return conf_proc("module", %d, "dyn_amount", %d, this)', $d->{number}, $v),
-      sprintf '%d%%', $v;
   }
   if($n eq 'phase') {
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "phase_list")', $d->{number}, $n, $v),
@@ -206,13 +220,55 @@ sub _eqtable {
   end;
 }
 
+sub _dyntable {
+  my $d = shift;
+
+  table;
+   Tr;
+    th colspan => 2, 'Dynamics';
+   end;
+   Tr;
+    th 'Downward expander threshold';
+    td;
+     input type => 'text', class => 'text', size => 4, name => "d_exp_threshold",
+        value => $d->{d_exp_threshold};
+     txt ' dB';
+    end;
+   end;
+   Tr;
+    th 'AGC amount';
+    td;
+     input type => 'text', class => 'text', size => 4, name => "agc_amount",
+        value => $d->{agc_amount};
+     txt ' %';
+    end;
+   end;
+   Tr;
+    th 'AGC threshold';
+    td;
+     input type => 'text', class => 'text', size => 4, name => "agc_threshold",
+        value => $d->{agc_threshold};
+     txt ' dB';
+    end;
+   end;
+   Tr;
+    td colspan => 2;
+     input type => 'submit', style => 'float: right', class => 'button', value => 'Save';
+    end;
+   end;
+  end;
+}
 
 sub conf {
   my($self, $nr) = @_;
 
   my $mod = $self->dbRow(q|
-    SELECT number, source_a, source_b, source_c, source_d, insert_source, insert_on_off,
-      gain, lc_frequency, lc_on_off, phase, phase_on_off, mono, mono_on_off, eq_on_off, dyn_amount, dyn_on_off,
+    SELECT number, source_a, source_a_preset,
+                   source_b, source_b_preset,
+                   source_c, source_c_preset,
+                   source_d, source_d_preset,
+                   insert_source, insert_on_off,
+      gain, lc_frequency, lc_on_off, phase, phase_on_off, mono, mono_on_off, eq_on_off, d_exp_threshold, agc_amount, agc_threshold, dyn_on_off,
       mod_level, mod_on_off,
       eq_band_1_range, eq_band_1_level,  eq_band_1_freq, eq_band_1_bw, eq_band_1_type,
       eq_band_2_range, eq_band_2_level, eq_band_2_freq, eq_band_2_bw, eq_band_2_type,
@@ -228,11 +284,23 @@ sub conf {
 
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
+  my $src_preset_lst = $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|);
 
   $self->htmlHeader(page => 'module', section => $nr, title => "Module $nr configuration");
   $self->htmlSourceList($pos_lst, 'matrix_sources');
+  div id => 'src_preset_list', class => 'hidden';
+    Select;
+      option value => 0, 'none';
+      for (@$src_preset_lst) {
+        option value => $_->{number}, $_->{label};
+      }
+    end;
+  end;
   div id => 'eq_table_container', class => 'hidden';
    _eqtable($mod);
+  end;
+  div id => 'dyn_table_container', class => 'hidden';
+   _dyntable($mod);
   end;
   div id => 'phase_list', class => 'hidden';
    Select;
@@ -248,10 +316,11 @@ sub conf {
   end;
   table;
    Tr; th colspan => 4, "Configuration for module $nr"; end;
-   Tr; th 'Source A'; td colspan => 3; _col 'source_a', $mod, $src_lst; end; end;
-   Tr; th 'Source B'; td colspan => 3; _col 'source_b', $mod, $src_lst; end; end;
-   Tr; th 'Source C'; td colspan => 3; _col 'source_c', $mod, $src_lst; end; end;
-   Tr; th 'Source D'; td colspan => 3; _col 'source_d', $mod, $src_lst; end; end;
+   Tr; th; th 'Source'; th 'Preset'; end; end;
+   Tr; th 'Input A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; end;
+   Tr; th 'Input B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; end;
+   Tr; th 'Input C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; end;
+   Tr; th 'Input D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; end;
    Tr; td colspan => 4, style => 'background: none', ''; end;
    Tr;
     th '';
@@ -286,7 +355,9 @@ sub conf {
    end;
    Tr; th 'Dynamics';
     td; _col 'dyn_on_off', $mod; end;
-    td; _col 'dyn_amount', $mod; end;
+    td;
+     a href => "#", onclick => "return conf_dyn(\"module\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
+    end;
    end;
    Tr; td colspan => 4, style => 'background: none', ''; end;
    Tr; th colspan => 4, 'Module'; end;
@@ -309,11 +380,14 @@ sub ajax {
     { name => 'source_b', required => 0, template => 'int' },
     { name => 'source_c', required => 0, template => 'int' },
     { name => 'source_d', required => 0, template => 'int' },
+    { name => 'source_a_preset', required => 0, template => 'int' },
+    { name => 'source_b_preset', required => 0, template => 'int' },
+    { name => 'source_c_preset', required => 0, template => 'int' },
+    { name => 'source_d_preset', required => 0, template => 'int' },
     { name => 'insert_source', required => 0, template => 'int' },
     { name => 'mod_level', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'gain', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'lc_frequency', required => 0, template => 'int' },
-    { name => 'dyn_amount', required => 0, template => 'int' },
     { name => 'phase', required => 0, template => 'int' },
     { name => 'mono', required => 0, template => 'int' },
     (map +{ name => $_, required => 0, enum => [0,1] }, @booleans),
@@ -321,12 +395,14 @@ sub ajax {
   return 404 if $f->{_err};
 
   my %set;
-  defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-    for(@booleans, qw|source_a source_b source_c source_d insert_source mod_level lc_frequency gain dyn_amount phase mono|);
+  defined $f->{$_} and ((($_ =~ /source_[a|b|c|d]_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
+    for(@booleans, qw|source_a source_b source_c source_d source_a_preset source_b_preset source_c_preset source_d_preset insert_source mod_level lc_frequency gain phase mono|);
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
-    $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ();
+    $f->{field} =~ /preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : (
+      $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ()
+    );
 }
 
 
@@ -347,6 +423,24 @@ sub eqajax {
     map +("eq_band_${_}_range", "eq_band_${_}_level", "eq_band_${_}_freq", "eq_band_${_}_bw", "eq_band_${_}_type"), 1..6;
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $nr);
   _eqtable $f;
+}
+
+
+sub dynajax {
+  my($self, $nr) = @_;
+
+  my @num = (regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ]);
+  my $f = $self->formValidate(
+    { name => "d_exp_threshold", @num },
+    { name => "agc_amount", template => 'int' },
+    { name => "agc_threshold", @num },
+  );
+  return 404 if $f->{_err};
+
+  my %set = map +("$_ = ?" => $f->{$_}),
+    map +("d_exp_threshold", "agc_amount", "agc_threshold");
+  $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $nr);
+  _dyntable $f;
 }
 
 

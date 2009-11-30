@@ -4,11 +4,9 @@ package AXUM::Handler::Source;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
 
 YAWF::register(
   qr{source}            	  => \&source,
-  qr{source/([1-9][0-9]*)/preset} => \&preset,
   qr{source/generate}   	  => \&generate,
   qr{ajax/source}       	  => \&ajax,
   qr{ajax/source/([1-9][0-9]*)/eq} => \&eqajax,
@@ -58,15 +56,8 @@ sub _col {
       'return conf_select("source", %d, "%s", "%s", this, "input_channels")', $d->{number}, $n, "$v->{addr}_$v->{channel}"),
       sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel});
   }
-  if ($n eq 'preset') {
-    a href => "/source/$d->{number}/preset",
-    ($d->{use_gain_preset} ||
-     $d->{use_lc_preset} ||
-     $d->{use_insert_preset} ||
-     $d->{use_eq_preset} ||
-     $d->{use_dyn_preset} ||
-     $d->{use_mod_preset} ||
-     $d->{use_routing_preset}) ? ('used') : (class => 'off', 'not used');
+  if ($n eq 'preset_type') {
+    txt $d->{preset_type};
   }
   if($n eq 'insert_source') {
     a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
@@ -209,7 +200,7 @@ sub source {
   my @cols = ((map "redlight$_", 1..8), (map "monitormute$_", 1..16));
   my $src = $self->dbAll(q|SELECT pos, number, label, input1_addr, input1_sub_ch, input2_addr,
     input2_sub_ch, input_phantom, input_pad, input_gain,
-    use_gain_preset, use_lc_preset, use_insert_preset, use_eq_preset, use_dyn_preset, use_mod_preset, use_routing_preset,
+    preset_type,
     !s FROM src_config ORDER BY pos|, join ', ', @cols);
 
   $self->htmlHeader(title => 'Source configuration', page => 'source');
@@ -240,7 +231,7 @@ sub source {
     th '';
     th colspan => 3, '';
     th colspan => 3, 'Input';
-    th 'Module';
+    th 'Preset';
     th colspan => 8, 'Redlight';
     th colspan => 16, 'Monitor destination mute/dim';
     th '';
@@ -253,7 +244,7 @@ sub source {
     th 'Phantom';
     th 'Pad';
     th 'Gain';
-    th 'Preset';
+    th 'Type';
     th $_ for (1..8);
     th abbr => $_->{label}, $_->{active} ? ():(class => 'inactive'), id => "exp_monitormute$_->{number}", $_->{number}%10
       for (@$mb);
@@ -290,7 +281,7 @@ sub source {
           txt '-';
         }
       end;
-      td; _col 'preset', $s; end;
+      td; _col 'preset_type', $s; end;
       for (map "redlight$_", 1..8) {
         td; _col $_, $s; end;
       }
@@ -337,173 +328,6 @@ sub generate {
     }
   }
   $self->resRedirect('/source', 'post');
-}
-
-sub preset {
-  my($self, $nr) = @_;
-
-  my $src = $self->dbRow(q|SELECT number,
-         label,
-         use_gain_preset,
-         gain,
-         use_lc_preset,
-         lc_frequency,
-         lc_on_off,
-         use_insert_preset,
-         insert_source,
-         insert_on_off,
-         use_phase_preset,
-         phase,
-         phase_on_off,
-         use_mono_preset,
-         mono,
-         mono_on_off,
-         use_eq_preset,
-         eq_band_1_range,
-         eq_band_1_level,
-         eq_band_1_freq,
-         eq_band_1_bw,
-         eq_band_1_type,
-         eq_band_2_range,
-         eq_band_2_level,
-         eq_band_2_freq,
-         eq_band_2_bw,
-         eq_band_2_type,
-         eq_band_3_range,
-         eq_band_3_level,
-         eq_band_3_freq,
-         eq_band_3_bw,
-         eq_band_3_type,
-         eq_band_4_range,
-         eq_band_4_level,
-         eq_band_4_freq,
-         eq_band_4_bw,
-         eq_band_4_type,
-         eq_band_5_range,
-         eq_band_5_level,
-         eq_band_5_freq,
-         eq_band_5_bw,
-         eq_band_5_type,
-         eq_band_6_range,
-         eq_band_6_level,
-         eq_band_6_freq,
-         eq_band_6_bw,
-         eq_band_6_type,
-         eq_on_off,
-         use_dyn_preset,
-         dyn_amount,
-         dyn_on_off,
-         use_mod_preset,
-         mod_lvl,
-         mod_on_off,
-         use_routing_preset,
-         routing_preset
-         FROM src_config
-         WHERE number = ?|, $nr);
-  return 404 if !$src->{number};
-
-  my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
-  my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
-  my $routing_lst = $self->dbRow(q|SELECT routing_preset_1_label,
-                                          routing_preset_2_label,
-                                          routing_preset_3_label,
-                                          routing_preset_4_label,
-                                          routing_preset_5_label,
-                                          routing_preset_6_label,
-                                          routing_preset_7_label,
-                                          routing_preset_8_label
-                                          FROM global_config|);
-
-  $self->htmlHeader(page => 'source', section => $nr, title => "Preset for $src->{label}");
-  $self->htmlSourceList($pos_lst, 'matrix_sources');
-  div id => 'eq_table_container', class => 'hidden';
-   _eqtable($src);
-  end;
-  div id => 'routing_preset_list', class => 'hidden';
-   Select;
-    foreach my $r (sort keys %$routing_lst) {
-      (my $number) = $r  =~ /(\d+)/;
-      option value => $number, $$routing_lst{$r};
-    }
-   end;
-  end;
-  div id => 'phase_list', class => 'hidden';
-   Select;
-    option value => $_, $phase_types[$_]
-      for (0..3);
-   end;
-  end;
-  div id => 'mono_list', class => 'hidden';
-   Select;
-    option value => $_, $mono_types[$_]
-      for (0..3);
-   end;
-  end;
-
-  table;
-   Tr; th colspan => 4, "Settings for $src->{label}"; end;
-   Tr;
-    th '';
-    th 'Override at';
-    th colspan => 2, 'Preset';
-   end;
-   Tr;
-    th '';
-    th 'source select';
-    th 'state';
-    th 'value';
-   end;
-   Tr;
-    th 'Digital gain';
-    td; _col 'use_gain_preset', $src; end;
-    td '-';
-    td; _col 'gain', $src; end;
-   end;
-   Tr;
-    th 'Low cut';
-    td; _col 'use_lc_preset', $src; end;
-    td; _col 'lc_on_off', $src; end;
-    td; _col 'lc_frequency', $src; end;
-   end;
-   Tr; th 'Insert';
-    td; _col 'use_insert_preset', $src; end;
-    td; _col 'insert_on_off', $src; end;
-    td; _col 'insert_source', $src, $src_lst; end;
-   end;
-   Tr; th 'Phase';
-    td; _col 'use_phase_preset', $src; end;
-    td; _col 'phase_on_off', $src; end;
-    td; _col 'phase', $src; end;
-   end;
-   Tr; th 'Mono';
-    td; _col 'use_mono_preset', $src; end;
-    td; _col 'mono_on_off', $src; end;
-    td; _col 'mono', $src; end;
-   end;
-   Tr; th 'EQ';
-    td; _col 'use_eq_preset', $src; end;
-    td; _col 'eq_on_off', $src; end;
-    td;
-     a href => "#", onclick => "return conf_eq(\"source\", this, $nr)"; lit 'EQ settings &raquo;'; end;
-    end;
-   end;
-   Tr; th 'Dynamics';
-    td; _col 'use_dyn_preset', $src; end;
-    td; _col 'dyn_on_off', $src; end;
-    td; _col 'dyn_amount', $src; end;
-   end;
-   Tr; th 'Module';
-    td; _col 'use_mod_preset', $src; end;
-    td; _col 'mod_on_off', $src; end;
-    td; _col 'mod_lvl', $src; end;
-   end;
-   Tr; th 'Routing';
-    td; _col 'use_routing_preset', $src; end;
-    td '-';
-    td; _col 'routing_preset', $src, $routing_lst; end;
-   end;
-  end;
-  $self->htmlFooter;
 }
 
 sub ajax {
@@ -595,5 +419,3 @@ sub eqajax {
   $self->dbExec('UPDATE src_config !H WHERE number = ?', \%set, $nr);
   _eqtable $f;
 }
-
-

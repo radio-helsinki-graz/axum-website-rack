@@ -6,9 +6,7 @@ function ajax(url, func) {
   for(i=0; i<http_requests.length; i++)
     if(http_requests[i] == null)
       break;
-  if ((url != "/ajax/tz_lst") && (url.search(/^\/ajax\/func\?\S*/) != 0)) {
-    document.getElementById('loading').style.display = 'block';
-  }
+  document.getElementById('loading').style.display = 'block';
   http_requests[i] = (window.ActiveXObject) ? new ActiveXObject('Microsoft.XMLHTTP') : new XMLHttpRequest();
   if(http_requests[i] == null) {
     alert("Your browse does not support the functionality this website requires.");
@@ -96,7 +94,7 @@ function conf_set(page, item, field, value, obj) {
   ajax('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value), function(h) {
     obj.innerHTML = h.responseText;
     remove_input(input_obj);
-    if(((page == 'source') || (page == 'dest') || (page == 'service')) && (field == 'pos'))
+    if(((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'service')) && (field == 'pos'))
     {
       location.reload(true);
     }
@@ -191,6 +189,18 @@ function conf_addsrcdest(obj, list, type) {
   return false;
 }
 
+/* this is an actual form, doesn't use AJAX */
+function conf_addpreset(obj) {
+  var d = create_input(obj, null, -30);
+  if(!d) return false;
+
+  d.style.textAlign = 'right';
+  d.innerHTML =
+    '<label for="label">Label:</label><input type="text" class="text" name="label" id="label" size="10" value="Preset"/>'
+   +' <input type="submit" value="Create" class="button" />';
+  d = d.getElementsByTagName('select');
+  return false;
+}
 
 function conf_eq(page, obj, item) {
   var d = create_input(obj, function (o) {
@@ -213,6 +223,29 @@ function conf_eq(page, obj, item) {
   d.getElementsByTagName('table')[0].id = 'eq_table';
   return false;
 }
+
+function conf_dyn(page, obj, item) {
+  var d = create_input(obj, function (o) {
+    var val = '';
+    var l = o.getElementsByTagName('input');
+    for(var i=0; i<l.length; i++)
+      if(l[i].name)
+        val += ';'+l[i].name+'='+encodeURIComponent(l[i].value);
+    l = o.getElementsByTagName('select');
+    for(i=0; i<l.length; i++)
+      val += ';'+l[i].name+'='+encodeURIComponent(l[i].options[l[i].selectedIndex].value);
+    val = val.substr(1, val.length-1);
+    ajax('/ajax/'+page+'/'+item+'/dyn?'+val, function(h) {
+      document.getElementById('dyn_table_container').innerHTML = h.responseText;
+      remove_input(input_obj);
+    });
+  }, 0, obj.offsetWidth);
+  if(!d) return false;
+  d.innerHTML = document.getElementById('dyn_table_container').innerHTML;
+  d.getElementsByTagName('table')[0].id = 'dyn_table';
+  return false;
+}
+
 
 function conf_func(addr, nr, f1, f2, f3, sensor, actuator, obj) {
   var i;var l;var o;

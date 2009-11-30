@@ -20,6 +20,10 @@ my @balance = ('left', 'center', 'right');
 sub _col {
   my($n, $p, $d) = @_;
   my $v = $d->{$n};
+  if($n =~ /use_preset/) {
+    a href => '#', onclick => sprintf('return conf_set("module/route/%d", %d, "%s", "%s", this)', $p, $d->{number}, $n, $v?0:1),
+      !$v ? (class => 'off', 'no') : 'yes';
+  }
   if($n =~ /level$/) {
     a href => '#', onclick => sprintf('return conf_level("module/route/%d", %d, "%s", %f, this)', $p, $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
@@ -51,7 +55,7 @@ sub route {
   my $presets = $self->dbRow('SELECT !s FROM global_config', join ', ', @cols);
   my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
   my $mod = $self->dbRow('SELECT number, !s FROM module_config WHERE number = ?',
-    join(', ', map +("${_}_level[$p]", "${_}_on_off[$p]", "${_}_pre_post[$p]", "${_}_balance[$p]", "${_}_assignment"), @busses), $nr);
+    join(', ', map +("${_}_use_preset[$p]", "${_}_level[$p]", "${_}_on_off[$p]", "${_}_pre_post[$p]", "${_}_balance[$p]", "${_}_assignment"), @busses), $nr);
   return 404 if !$mod->{number};
 
   $self->htmlHeader(page => 'modulerouting', section => $nr, title => "Module $nr routing configuration");
@@ -62,7 +66,7 @@ sub route {
   end;
   table;
    Tr;
-    th colspan => 5;
+    th colspan => 6;
      txt "Module $nr routing configuration";
      p class => 'navigate';
       txt 'preset: ';
@@ -72,7 +76,13 @@ sub route {
     end;
    end;
    Tr;
-    th 'Buss';
+    th '';
+    th 'Override';
+    th colspan => 4, '';
+   end;
+   Tr;
+    th '';
+    th 'Module';
     th 'Level';
     th 'State';
     th 'Pre/post';
@@ -82,6 +92,7 @@ sub route {
      next if !$mod->{$busses[$b->{number}-1].'_assignment'};
      Tr;
       th $b->{label};
+      td; _col $busses[$b->{number}-1].'_use_preset', $p, $mod; end;
       td; _col $busses[$b->{number}-1].'_level', $p, $mod; end;
       td; _col $busses[$b->{number}-1].'_on_off', $p, $mod; end;
       td; _col $busses[$b->{number}-1].'_pre_post', $p, $mod; end;
@@ -100,6 +111,7 @@ sub ajax {
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
     map +(
+      { name => "${_}_use_preset", required => 0, enum => [0,1] },
       { name => "${_}_level", required => 0 },
       { name => "${_}_on_off", required => 0, enum => [0,1] },
       { name => "${_}_pre_post", required => 0, enum => [0,1] },
@@ -112,7 +124,7 @@ sub ajax {
   defined $f->{$_} && ($f->{$_} *= 511)
     for (map "${_}_balance", @busses);
   defined $f->{$_} && ($set{$_."[$p] = ?" } = $f->{$_})
-    for (map +("${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
+    for (map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, $p, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };

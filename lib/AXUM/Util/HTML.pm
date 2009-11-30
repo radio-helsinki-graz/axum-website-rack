@@ -35,10 +35,13 @@ sub htmlHeader {
          lit " &raquo; ";
          a href => "/source/$o{section}", "Generate";
        }
-       elsif ($o{section})
+     }
+     if($o{page} eq 'preset') {
+       a href => '/preset', 'Presets';
+       if($o{section})
        {
          lit " &raquo; ";
-         a href => "/source/$o{section}/preset", "Source $o{section} preset";
+         a href => "/preset/$o{section}", "Preset $o{section}";
        }
      }
      a href => '/externsrc', 'Extern source configuration' if $o{page} eq 'externsrc';
