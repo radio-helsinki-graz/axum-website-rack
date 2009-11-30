@@ -21,7 +21,7 @@ sub _col {
 
   if($n eq 'console') {
     a href => '#', onclick => sprintf('return conf_select("module/assign", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
-      $v+1;
+      $v;
   }
   if($n =~ /assignment/) {
    a href => '#', onclick => sprintf('return conf_set("module/assign", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
@@ -45,7 +45,7 @@ sub assign {
   $self->htmlHeader(page => 'moduleassign', title => 'Module assignment');
   div id => 'console_list', class => 'hidden';
     Select;
-      option value => $_, 'Console '.($_+1) for (0..3);
+      option value => $_, 'Console '.($_) for (1..4);
     end;
   end;
   table;
@@ -94,7 +94,7 @@ sub ajax {
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
-    { name => 'console', required => 0, enum => [0,1,2,3] },
+    { name => 'console', required => 0, enum => [1,2,3,4] },
     map +{ name => $_, required => 0, enum => [0,1] }, @busses
   );
   return 404 if $f->{_err};
