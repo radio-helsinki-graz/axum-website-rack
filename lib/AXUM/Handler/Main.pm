@@ -33,7 +33,7 @@ sub home {
    Tr; th $i++; td; a href => '/talkback', 'Talkback configuration'; end; end;
    Tr class => 'empty'; th colspan => 2; end; end;
    Tr; th colspan => 2, 'Module settings'; end;
-   Tr; th $i++; td; a href => '/preset', 'Presets'; end; end;
+   Tr; th $i++; td; a href => '/preset', 'Processing presets'; end; end;
    Tr; th $i++; td; a href => '/module/assign', 'Module assignment'; end; end;
    Tr; th $i++; td; a href => '/module', 'Module configuration'; end; end;
    Tr class => 'empty'; th colspan => 2; end; end;

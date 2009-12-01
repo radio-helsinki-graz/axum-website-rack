@@ -29,9 +29,6 @@ sub _col {
     $jsval =~ s/"/\\"/g;
     a href => '#', onclick => sprintf('return conf_text("preset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
-  if($n eq 'type') {
-    txt $v;
-  }
   if($n eq 'insert_source') {
     a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
       !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
@@ -196,7 +193,7 @@ sub preset_overview {
     $self->dbExec("SELECT src_preset_renumber()");
     return $self->resRedirect('/preset', 'temp');
   }
-  my $presets = $self->dbAll(q|SELECT pos, number, label, type
+  my $presets = $self->dbAll(q|SELECT pos, number, label
     FROM src_preset ORDER BY pos|);
 
   $self->htmlHeader(title => 'Presets', page => 'preset');
@@ -217,7 +214,6 @@ sub preset_overview {
    Tr;
     th 'Nr';
     th 'Label';
-    th 'Type';
     th 'Settings';
     th '';
    end;
@@ -226,7 +222,6 @@ sub preset_overview {
      Tr;
       th; _col 'pos', $p; end;
       td; _col 'label', $p; end;
-      td; _col 'type', $p; end;
       td;
        a href => '/preset/'.$p->{number}, class => 'off', 'Configure';
       end;
