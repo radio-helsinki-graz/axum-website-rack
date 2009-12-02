@@ -16,6 +16,8 @@ YAWF::register(
 
 my @phase_types = ('Normal', 'Left', 'Right', 'Both');
 my @mono_types = ('Stereo', 'Left', 'Right', 'Mono');
+my @busses = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
+my @balance = ('left', 'center', 'right');
 
 sub overview {
   my $self = shift;
@@ -146,10 +148,6 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
-  if($n eq 'mod_level') {
-    a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
-      $v < -120 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
-  }
   if($n =~ /.+_on_off/) {
     a href => '#', onclick => sprintf('return conf_set("module", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       $v ? 'on' : (class => 'off', 'off');
@@ -166,7 +164,26 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "mono_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $mono_types[$v];
   }
+  if($n =~ /level$/) {
+    if($n eq 'mod_level') {
+      a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
+        $v < -120 ? (class => 'off') : (), $v < -120 ? (sprintf 'off') : (sprintf '%.1f dB', $v);
+    } else {
+      a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
+        $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
+    }
+  }
+  if($n =~ /pre_post$/) {
+    a href => '#', onclick => sprintf('return conf_set("module", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+      !$v ? (class => 'off', 'post') : 'pre';
+  }
+  if($n =~ /balance$/) {
+    $v = sprintf '%.0f', $v/512;
+    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "balance_items")',
+      $d->{number}, $n, $v), $v == 1 ? (class => 'off') : (), $balance[$v];
+  }
 }
+
 
 
 sub _eqtable {
@@ -275,7 +292,27 @@ sub conf {
       eq_band_3_range, eq_band_3_level, eq_band_3_freq, eq_band_3_bw, eq_band_3_type,
       eq_band_4_range, eq_band_4_level, eq_band_4_freq, eq_band_4_bw, eq_band_4_type,
       eq_band_5_range, eq_band_5_level, eq_band_5_freq, eq_band_5_bw, eq_band_5_type,
-      eq_band_6_range, eq_band_6_level, eq_band_6_freq, eq_band_6_bw, eq_band_6_type
+      eq_band_6_range, eq_band_6_level, eq_band_6_freq, eq_band_6_bw, eq_band_6_type,
+      buss_1_2_level, buss_3_4_level, buss_5_6_level, buss_7_8_level,
+      buss_9_10_level, buss_11_12_level, buss_13_14_level, buss_15_16_level,
+      buss_17_18_level, buss_19_20_level, buss_21_22_level, buss_23_24_level,
+      buss_25_26_level, buss_27_28_level, buss_29_30_level, buss_31_32_level,
+      buss_1_2_on_off, buss_3_4_on_off, buss_5_6_on_off, buss_7_8_on_off,
+      buss_9_10_on_off, buss_11_12_on_off, buss_13_14_on_off, buss_15_16_on_off,
+      buss_17_18_on_off, buss_19_20_on_off, buss_21_22_on_off, buss_23_24_on_off,
+      buss_25_26_on_off, buss_27_28_on_off, buss_29_30_on_off, buss_31_32_on_off,
+      buss_1_2_pre_post, buss_3_4_pre_post, buss_5_6_pre_post, buss_7_8_pre_post,
+      buss_9_10_pre_post, buss_11_12_pre_post, buss_13_14_pre_post, buss_15_16_pre_post,
+      buss_17_18_pre_post, buss_19_20_pre_post, buss_21_22_pre_post, buss_23_24_pre_post,
+      buss_25_26_pre_post, buss_27_28_pre_post, buss_29_30_pre_post, buss_31_32_pre_post,
+      buss_1_2_balance, buss_3_4_balance, buss_5_6_balance, buss_7_8_balance,
+      buss_9_10_balance, buss_11_12_balance, buss_13_14_balance, buss_15_16_balance,
+      buss_17_18_balance, buss_19_20_balance, buss_21_22_balance, buss_23_24_balance,
+      buss_25_26_balance, buss_27_28_balance, buss_29_30_balance, buss_31_32_balance,
+      buss_1_2_assignment, buss_3_4_assignment, buss_5_6_assignment, buss_7_8_assignment,
+      buss_9_10_assignment, buss_11_12_assignment, buss_13_14_assignment, buss_15_16_assignment,
+      buss_17_18_assignment, buss_19_20_assignment, buss_21_22_assignment, buss_23_24_assignment,
+      buss_25_26_assignment, buss_27_28_assignment, buss_29_30_assignment, buss_31_32_assignment
     FROM module_config
     WHERE number = ?|,
     $nr
@@ -285,9 +322,15 @@ sub conf {
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
   my $src_preset_lst = $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|);
+  my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
 
   $self->htmlHeader(page => 'module', section => $nr, title => "Module $nr configuration");
   $self->htmlSourceList($pos_lst, 'matrix_sources');
+  div id => 'balance_items', class => 'hidden';
+   Select;
+    option value => $_, $balance[$_] for (0..$#balance);
+   end;
+  end;
   div id => 'src_preset_list', class => 'hidden';
     Select;
       option value => 0, 'none';
@@ -315,13 +358,14 @@ sub conf {
    end;
   end;
   table;
-   Tr; th colspan => 4, "Configuration for module $nr"; end;
+   Tr; th colspan => 3, "Configuration for module $nr"; end;
    Tr; th; th 'Source'; th 'Preset'; end; end;
    Tr; th 'Input A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; end;
    Tr; th 'Input B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; end;
    Tr; th 'Input C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; end;
    Tr; th 'Input D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; end;
-   Tr; td colspan => 4, style => 'background: none', ''; end;
+   Tr; td colspan => 3, style => 'background: none', ''; end;
+   Tr; th colspan => 3, 'Processing'; end;
    Tr;
     th '';
     th 'State';
@@ -359,10 +403,35 @@ sub conf {
      a href => "#", onclick => "return conf_dyn(\"module\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
     end;
    end;
-   Tr; td colspan => 4, style => 'background: none', ''; end;
-   Tr; th colspan => 4, 'Module'; end;
-   Tr; th 'Level'; td colspan => 3; _col 'mod_level', $mod; end; end;
-   Tr; th 'State'; td colspan => 3; _col 'mod_on_off', $mod; end; end;
+   Tr; td colspan => 3, style => 'background: none', ''; end;
+   Tr; th colspan => 3, 'Module'; end;
+   Tr; th 'Level'; td colspan => 2; _col 'mod_level', $mod; end; end;
+   Tr; th 'State'; td colspan => 2; _col 'mod_on_off', $mod; end; end;
+   Tr; td colspan => 3, style => 'background: none', ''; end;
+  end;
+  table;
+   Tr;
+    th colspan => 5;
+     txt "Routing";
+    end;
+   end;
+   Tr;
+    th '';
+    th 'Level';
+    th 'State';
+    th 'Pre/post';
+    th 'Balance';
+   end;
+   for my $b (@$bus) {
+     next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+     Tr;
+      th $b->{label};
+      td; _col $busses[$b->{number}-1].'_level', $mod; end;
+      td; _col $busses[$b->{number}-1].'_on_off', $mod; end;
+      td; _col $busses[$b->{number}-1].'_pre_post', $mod; end;
+      td; _col $busses[$b->{number}-1].'_balance', $mod; end;
+     end;
+   }
   end;
   $self->htmlFooter;
 }
@@ -391,12 +460,20 @@ sub ajax {
     { name => 'phase', required => 0, template => 'int' },
     { name => 'mono', required => 0, template => 'int' },
     (map +{ name => $_, required => 0, enum => [0,1] }, @booleans),
+    map +(
+      { name => "${_}_level", required => 0 },
+      { name => "${_}_on_off", required => 0, enum => [0,1] },
+      { name => "${_}_pre_post", required => 0, enum => [0,1] },
+      { name => "${_}_balance", required => 0, enum => [0..2] },
+    ), @busses
   );
   return 404 if $f->{_err};
 
   my %set;
+  defined $f->{$_} && ($f->{$_} *= 511)
+    for (map "${_}_balance", @busses);
   defined $f->{$_} and ((($_ =~ /source_[a|b|c|d]_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
-    for(@booleans, qw|source_a source_b source_c source_d source_a_preset source_b_preset source_c_preset source_d_preset insert_source mod_level lc_frequency gain phase mono|);
+    for(@booleans, qw|source_a source_b source_c source_d source_a_preset source_b_preset source_c_preset source_d_preset insert_source mod_level lc_frequency gain phase mono|, map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },

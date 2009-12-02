@@ -34,9 +34,6 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_set("globalconf", 0, "auto_momentary", %d, this)', $v?0:1),
       $v ? 'Yes' : 'No';
   }
-  if($n =~ /routing_preset_([1-8])_label/) {
-    a href => '#', onclick => sprintf('return conf_text("globalconf", 0, "%s", "%s", this)', $n, $v), $v;
-  }
   if($n eq 'use_module_defaults') {
     a href => '#', onclick => sprintf('return conf_set("globalconf", 0, "use_module_defaults", %d, this)', $v?0:1),
       $v ? 'Yes' : 'No';
@@ -65,9 +62,8 @@ sub _col {
 sub conf {
   my $self = shift;
 
-  my @cols = (map "routing_preset_${_}_label", 1..8);
-  my $conf = $self->dbRow('SELECT samplerate, ext_clock, headroom, level_reserve, auto_momentary, use_module_defaults, startup_state,
-                           !s FROM global_config', join ', ', @cols);
+  my $conf = $self->dbRow('SELECT samplerate, ext_clock, headroom, level_reserve, auto_momentary, use_module_defaults, startup_state
+                           FROM global_config');
 
   $self->htmlHeader(page => 'globalconf', title => 'Global configuration');
   div id => 'samplerates', class => 'hidden'; Select;
@@ -87,14 +83,6 @@ sub conf {
    Tr; th; txt 'use module defaults'; end; end;
    Tr; th 'Startup state'; td; _col 'startup_state', $conf->{startup_state}; end; end;
   end;
-  br;
-  table;
-   Tr; th colspan => 2, 'Routing preset'; end;
-   Tr; th 'Number'; th 'Label'; end;
-   for (1..8) {
-     Tr; th "$_"; td; _col "routing_preset_${_}_label", $conf->{"routing_preset_${_}_label"}; end; end;
-   }
-  end;
   $self->htmlFooter;
 }
 
@@ -110,11 +98,10 @@ sub ajax {
     { name => 'auto_momentary', required => 0, enum => [0,1] },
     { name => 'use_module_defaults', required => 0, enum => [0,1] },
     { name => 'startup_state', required => 0, enum => [0,1] },
-    (map +{ name => "routing_preset_${_}_label", required => 0, maxlength => 32, minlength => 1 }, 1..8),
   );
   return 404 if $f->{_err};
 
-  my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve use_module_defaults startup_state auto_momentary|, (map("routing_preset_${_}_label", 1..8));
+  my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve use_module_defaults startup_state auto_momentary|;
   $self->dbExec('UPDATE global_config !H', \%set) if keys %set;
   _col $f->{field}, $f->{$f->{field}};
 }
