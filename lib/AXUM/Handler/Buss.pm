@@ -43,6 +43,10 @@ sub _col {
     $jsval =~ s/"/\\"/g;
     a href => '#', onclick => sprintf('return conf_text("buss", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
+  if($n eq 'console') {
+    a href => '#', onclick => sprintf('return conf_select("buss", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
+      $v;
+  }
 }
 
 
@@ -50,18 +54,24 @@ sub buss {
   my $self = shift;
 
   my $busses = $self->dbAll(q|
-    SELECT number, label, pre_on, pre_level, pre_balance, level, on_off, interlock, exclusive, global_reset
+    SELECT number, label, pre_on, pre_level, pre_balance, level, on_off, interlock, exclusive, global_reset, console
       FROM buss_config ORDER BY number ASC|);
 
   $self->htmlHeader(title => 'Buss configuration', page => 'buss');
+  div id => 'console_list', class => 'hidden';
+    Select;
+      option value => $_, 'Console '.($_) for (1..4);
+    end;
+  end;
   table;
-   Tr; th colspan => 10, 'Buss configuration'; end;
+   Tr; th colspan => 11, 'Buss configuration'; end;
    Tr;
     th colspan => 2, '';
     th colspan => 3, 'Master Pre/Post';
     th colspan => 2, 'Master';
     th colspan => 2, '';
     th rowspan => 2, "Buss reset\nby module active";
+    th '';
    end;
    Tr;
     th 'Buss';
@@ -73,11 +83,12 @@ sub buss {
     th 'State';
     th 'Interlock';
     th 'Exclusive';
+    th 'Console';
    end;
    for my $b (@$busses) {
      Tr;
       th sprintf '%d/%d', $b->{number}*2-1, $b->{number}*2;
-      for(qw|label pre_on pre_level pre_balance level on_off interlock exclusive global_reset|) {
+      for(qw|label pre_on pre_level pre_balance level on_off interlock exclusive global_reset console|) {
         td; _col $_, $b; end;
       }
      end;
@@ -93,6 +104,7 @@ sub ajax {
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' }, # should have an enum property
     { name => 'item', template => 'int' },
+    { name => 'console',      required => 0, enum => [1,2,3,4] },
     { name => 'global_reset', required => 0, enum => [0,1] },
     { name => 'interlock',    required => 0, enum => [0,1] },
     { name => 'exclusive',    required => 0, enum => [0,1] },
@@ -107,7 +119,7 @@ sub ajax {
 
   my %set;
   defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-    for(qw|global_reset interlock exclusive on_off pre_on pre_level pre_balance level label|);
+    for(qw|console global_reset interlock exclusive on_off pre_on pre_level pre_balance level label|);
 
   $self->dbExec('UPDATE buss_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
