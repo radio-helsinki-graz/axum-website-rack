@@ -8,6 +8,7 @@ use YAWF ':html';
 
 YAWF::register(
   qr{module/assign} => \&assign,
+  qr{module/assign/generate} => \&generate,
   qr{ajax/module/assign} => \&ajax,
 );
 
@@ -72,7 +73,7 @@ sub assign {
       end;
     }
    end;
-   Tr class => 'empty'; th colspan => 33; end; end;
+   Tr class => 'empty'; th colspan => 33; a href=> '/module/assign/generate', 'generate'; txt ' assignment from console information (takes some seconds!)'; end; end;
    for my $b (@$bus) {
      Tr $p > $dspcount ? (class => 'inactive') : ();
       th $b->{label};
@@ -104,6 +105,23 @@ sub ajax {
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
 }
 
+sub generate {
+  my $self = shift;
+  my $buss_asgn = $self->dbAll('SELECT b.number-1 AS buss_number, m.number AS module_number, b.console FROM buss_config b LEFT JOIN module_config m ON b.console = m.console ORDER BY m.number, b.number');
+
+  my %set = map +("$_ = ?", 'false'), @busses;
+  $self->dbExec('UPDATE module_config !H', \%set);
+
+  for (1..128) {
+    my $mod_busses = $self->dbAll('SELECT b.number-1 AS buss_number, m.number AS module_number, b.console FROM buss_config b LEFT JOIN module_config m ON b.console = m.console WHERE m.number = ? ORDER BY b.number', $_);
+
+    my %set = map +("$busses[$_->{buss_number}] = ?", 'true'), @$mod_busses;
+    lit Dumper(\%set)." - $_ <BR>";
+    $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $_);
+  }
+
+  $self->resRedirect('/module/assign', 'temp');
+}
 
 1;
 
