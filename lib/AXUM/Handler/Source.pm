@@ -287,7 +287,7 @@ sub ajax {
     txt 'Wait for reload';
   } else {
     my %set;
-    defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
+    defined $f->{$_} and ((($_ =~ /default_src_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
       for(qw|label input_phantom input_pad input_gain default_src_preset|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
     defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = ?, '.$_.'_sub_ch = ?'} = [ $1, $2 ])
       for('input1', 'input2');
