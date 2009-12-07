@@ -10,6 +10,7 @@ YAWF::register(
   qr{module} => \&overview,
   qr{module/([1-9][0-9]*)} => \&conf,
   qr{ajax/module} => \&ajax,
+  qr{ajax/module/([A|B|C|D])} => \&rpajax,
   qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
   qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
 );
@@ -46,6 +47,15 @@ sub overview {
     ORDER BY m.number|,
     $p*32-31, $p*32
   );
+
+  my $where = "WHERE ";
+  $where .= "(${_}_assignment = true AND ((${_}_level > -80 AND ${_}_on_off = true) OR (${_}_pre_post = true))) OR "
+    for (@busses);
+  $where .= "false";
+
+  my $buss_cfg = $self->dbAll('SELECT number FROM module_config WHERE number >= ? AND number <= ?
+                               INTERSECT SELECT number FROM module_config !s AND number >= ? AND number <= ?
+                               ORDER BY number', $p*32-31, $p*32, $where, $p*32-31, $p*32);
   my $dspcount = $self->dbRow('SELECT dsp_count() AS cnt')->{cnt};
 
   $self->htmlHeader(page => 'module', title => 'Module overview');
@@ -105,7 +115,11 @@ sub overview {
       th 'Routing';
       for (@m) {
         td;
-         a href => "/module/$mod->[$_]{number}/route"; lit 'Routing &raquo;'; end;
+          my $nr = $_;
+          my @array = @$buss_cfg;
+          my $enabled = "";
+          ($enabled .= ($array[$_]{number} eq $mod->[$nr]{number})) for 0..$#array;
+          a href => "/module/$mod->[$_]{number}", ($enabled) ? ('enabled') : (class => 'off', 'none');
         end;
       }
      end;
@@ -121,6 +135,10 @@ sub overview {
 sub _col {
   my($n, $d, $lst) = @_;
   my $v = $d->{$n};
+
+  #globals if 'routing preset A/B/C/D' are selected instead of module settings
+  my $url = $lst ? ("module/$lst") : ("module");
+  my $number = $lst ? ($d->{mod_number}) : ($d->{number});
 
   if($n eq 'source_a' || $n eq 'source_b' || $n eq 'source_c' || $n eq 'source_d' || $n eq 'insert_source') {
     my $s;
@@ -149,7 +167,7 @@ sub _col {
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n =~ /.+_on_off/) {
-    a href => '#', onclick => sprintf('return conf_set("module", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number, $n, $v?0:1),
       $v ? 'on' : (class => 'off', 'off');
   }
   if($n eq 'lc_frequency') {
@@ -169,18 +187,22 @@ sub _col {
       a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
         $v < -120 ? (class => 'off') : (), $v < -120 ? (sprintf 'off') : (sprintf '%.1f dB', $v);
     } else {
-      a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
+      a href => '#', onclick => sprintf('return conf_level("%s", %d, "%s", %f, this)', $url, $number, $n, $v),
         $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
     }
   }
   if($n =~ /pre_post$/) {
-    a href => '#', onclick => sprintf('return conf_set("module", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number, $n, $v?0:1),
       !$v ? (class => 'off', 'post') : 'pre';
   }
   if($n =~ /balance$/) {
     $v = sprintf '%.0f', $v/512;
-    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "balance_items")',
-      $d->{number}, $n, $v), $v == 1 ? (class => 'off') : (), $balance[$v];
+    a href => '#', onclick => sprintf('return conf_select("%s", %d, "%s", %d, this, "balance_items")',
+      $url, $number, $n, $v), $v == 1 ? (class => 'off') : (), $balance[$v];
+  }
+  if(($n =~ /.+_use_preset$/) or ($n =~ /^use_/)) {
+    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number , $n, $v?0:1),
+      $v ? 'yes' : (class => 'off', 'no');
   }
 }
 
@@ -276,48 +298,109 @@ sub _dyntable {
   end;
 }
 
+sub _routingtable {
+  my($mod, $bus, $type) = @_;
+  table;
+  Tr;
+   th colspan => 6;
+    txt "Routing $type";
+   end;
+  end;
+  Tr;
+   th '';
+   if ($type =~ /[A|B|C|D]/) {
+     th 'Override';
+   } else {
+     th 'Use at';
+   }
+   th colspan => 4, '';
+  end;
+  Tr;
+   th '';
+   if ($type =~ /[A|B|C|D]/) {
+     th 'module';
+   } else {
+     th 'source select';
+   }
+   th 'Level';
+   th 'State';
+   th 'Pre/post';
+   th 'Balance';
+  end;
+  for my $b (@$bus) {
+    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+    Tr;
+     th $b->{label};
+     td; _col $busses[$b->{number}-1].'_use_preset', $mod, $type; end;
+     td; _col $busses[$b->{number}-1].'_level', $mod, $type; end;
+     td; _col $busses[$b->{number}-1].'_on_off', $mod, $type; end;
+     td; _col $busses[$b->{number}-1].'_pre_post', $mod, $type; end;
+     td; _col $busses[$b->{number}-1].'_balance', $mod, $type; end;
+    end;
+  }
+  end;
+}
+
+
+
 sub conf {
   my($self, $nr) = @_;
+
+
+  my $bsel;
+  $bsel .= "${_}_use_preset, ${_}_level, ${_}_on_off, ${_}_pre_post, ${_}_balance, ${_}_assignment, "
+    for (@busses);
+  $bsel .= "false";
+
+  my $rp_bsel;
+  $rp_bsel .= "r.${_}_use_preset, r.${_}_level, r.${_}_on_off, r.${_}_pre_post, r.${_}_balance, m.${_}_assignment, "
+    for (@busses);
+  $rp_bsel .= "false";
 
   my $mod = $self->dbRow(q|
     SELECT number, source_a, source_a_preset,
                    source_b, source_b_preset,
                    source_c, source_c_preset,
                    source_d, source_d_preset,
-                   insert_source, insert_on_off,
-      gain, lc_frequency, lc_on_off, phase, phase_on_off, mono, mono_on_off, eq_on_off, d_exp_threshold, agc_amount, agc_threshold, dyn_on_off,
-      mod_level, mod_on_off,
+      use_gain_preset, gain,
+      use_lc_preset, lc_frequency, lc_on_off,
+      use_insert_preset, insert_source, insert_on_off,
+      use_phase_preset, phase, phase_on_off,
+      use_mono_preset, mono, mono_on_off,
+      use_dyn_preset, d_exp_threshold, agc_amount, agc_threshold, dyn_on_off,
+      use_mod_preset, mod_level, mod_on_off,
+      use_eq_preset, eq_on_off,
       eq_band_1_range, eq_band_1_level,  eq_band_1_freq, eq_band_1_bw, eq_band_1_type,
       eq_band_2_range, eq_band_2_level, eq_band_2_freq, eq_band_2_bw, eq_band_2_type,
       eq_band_3_range, eq_band_3_level, eq_band_3_freq, eq_band_3_bw, eq_band_3_type,
       eq_band_4_range, eq_band_4_level, eq_band_4_freq, eq_band_4_bw, eq_band_4_type,
       eq_band_5_range, eq_band_5_level, eq_band_5_freq, eq_band_5_bw, eq_band_5_type,
       eq_band_6_range, eq_band_6_level, eq_band_6_freq, eq_band_6_bw, eq_band_6_type,
-      buss_1_2_level, buss_3_4_level, buss_5_6_level, buss_7_8_level,
-      buss_9_10_level, buss_11_12_level, buss_13_14_level, buss_15_16_level,
-      buss_17_18_level, buss_19_20_level, buss_21_22_level, buss_23_24_level,
-      buss_25_26_level, buss_27_28_level, buss_29_30_level, buss_31_32_level,
-      buss_1_2_on_off, buss_3_4_on_off, buss_5_6_on_off, buss_7_8_on_off,
-      buss_9_10_on_off, buss_11_12_on_off, buss_13_14_on_off, buss_15_16_on_off,
-      buss_17_18_on_off, buss_19_20_on_off, buss_21_22_on_off, buss_23_24_on_off,
-      buss_25_26_on_off, buss_27_28_on_off, buss_29_30_on_off, buss_31_32_on_off,
-      buss_1_2_pre_post, buss_3_4_pre_post, buss_5_6_pre_post, buss_7_8_pre_post,
-      buss_9_10_pre_post, buss_11_12_pre_post, buss_13_14_pre_post, buss_15_16_pre_post,
-      buss_17_18_pre_post, buss_19_20_pre_post, buss_21_22_pre_post, buss_23_24_pre_post,
-      buss_25_26_pre_post, buss_27_28_pre_post, buss_29_30_pre_post, buss_31_32_pre_post,
-      buss_1_2_balance, buss_3_4_balance, buss_5_6_balance, buss_7_8_balance,
-      buss_9_10_balance, buss_11_12_balance, buss_13_14_balance, buss_15_16_balance,
-      buss_17_18_balance, buss_19_20_balance, buss_21_22_balance, buss_23_24_balance,
-      buss_25_26_balance, buss_27_28_balance, buss_29_30_balance, buss_31_32_balance,
-      buss_1_2_assignment, buss_3_4_assignment, buss_5_6_assignment, buss_7_8_assignment,
-      buss_9_10_assignment, buss_11_12_assignment, buss_13_14_assignment, buss_15_16_assignment,
-      buss_17_18_assignment, buss_19_20_assignment, buss_21_22_assignment, buss_23_24_assignment,
-      buss_25_26_assignment, buss_27_28_assignment, buss_29_30_assignment, buss_31_32_assignment
+      !s
     FROM module_config
     WHERE number = ?|,
-    $nr
-  );
+    $bsel, $nr);
   return 404 if !$mod->{number};
+
+  my $rp_a = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+                            JOIN module_config m ON m.number = mod_number
+                            WHERE mod_number = ? AND mod_input = 'A'|, $rp_bsel, $nr);
+  return 404 if !$rp_a->{mod_number};
+
+  my $rp_b = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+                            JOIN module_config m ON m.number = mod_number
+                            WHERE mod_number = ? AND mod_input = 'B'|, $rp_bsel, $nr);
+  return 404 if !$rp_b->{mod_number};
+
+  my $rp_c = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+                            JOIN module_config m ON m.number = mod_number
+                            WHERE mod_number = ? AND mod_input = 'C'|, $rp_bsel, $nr);
+  return 404 if !$rp_c->{mod_number};
+
+  my $rp_d = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+                            JOIN module_config m ON m.number = mod_number
+                            WHERE mod_number = ? AND mod_input = 'D'|, $rp_bsel, $nr);
+  return 404 if !$rp_d->{mod_number};
 
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
@@ -358,46 +441,84 @@ sub conf {
    end;
   end;
   table;
-   Tr; th colspan => 3, "Configuration for module $nr"; end;
-   Tr; th; th 'Source'; th 'Preset'; end; end;
-   Tr; th 'Input A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; end;
-   Tr; th 'Input B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; end;
-   Tr; th 'Input C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; end;
-   Tr; th 'Input D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; end;
-   Tr; td colspan => 3, style => 'background: none', ''; end;
-   Tr; th colspan => 3, 'Processing'; end;
+   Tr; th colspan => 4, "Configuration for module $nr"; end;
+   Tr; th colspan => 2; th 'Processing'; th 'Routing'; end; end;
+   Tr; th; th 'Source'; th 'Preset'; th 'Preset'; end; end;
+   Tr; th 'Input A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_a", this)', 'routing'; end;
+   Tr id => 'routing_a', class => 'hidden';
+    td '';
+    td colspan => 3, style => 'padding: 10px';
+     _routingtable($rp_a, $bus, 'A');
+    end;
+   end;
+   Tr; th 'Input B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_b", this)', 'routing'; end;
+   Tr id => 'routing_b', class => 'hidden';
+    td '';
+    td colspan => 3, style => 'padding: 10px';
+      _routingtable($rp_b, $bus, 'B');
+    end;
+   end;
+   Tr; th 'Input C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_c", this)', 'routing'; end;
+   Tr id => 'routing_c', class => 'hidden';
+    td '';
+    td colspan => 3, style => 'padding: 10px';
+      _routingtable($rp_c, $bus, 'C');
+    end;
+   end;
+   Tr; th 'Input D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_d", this)', 'routing'; end;
+   Tr id => 'routing_d', class => 'hidden';
+    td '';
+    td colspan => 3, style => 'padding: 10px';
+      _routingtable($rp_d, $bus, 'D');
+    end;
+   end;
+   Tr; td colspan => 4, style => 'background: none', ''; end;
+   Tr; th colspan => 4, 'Processing'; end;
+   Tr;
+    th; end;
+    th 'Use at';
+    th colspan => 2; end;
+   end;
    Tr;
     th '';
+    th 'source select';
     th 'State';
     th 'Value';
    end;
    Tr; th 'Digital gain';
+    td; _col 'use_gain_preset', $mod; end;
     td '-';
     td; _col 'gain', $mod; end;
    end;
    Tr; th 'Low cut';
+    td; _col 'use_lc_preset', $mod; end;
     td; _col 'lc_on_off', $mod; end;
     td; _col 'lc_frequency', $mod; end;
    end;
    Tr; th 'Insert';
+    td; _col 'use_insert_preset', $mod; end;
     td; _col 'insert_on_off', $mod; end;
     td; _col 'insert_source', $mod, $src_lst; end;
    end;
    Tr; th 'Phase';
+    td; _col 'use_phase_preset', $mod; end;
     td; _col 'phase_on_off', $mod; end;
     td; _col 'phase', $mod; end;
    end;
    Tr; th 'Mono';
+    td; _col 'use_mono_preset', $mod; end;
     td; _col 'mono_on_off', $mod; end;
     td; _col 'mono', $mod; end;
    end;
    Tr; th 'EQ';
+    td; _col 'use_eq_preset', $mod; end;
     td; _col 'eq_on_off', $mod; end;
     td;
      a href => "#", onclick => "return conf_eq(\"module\", this, $nr)"; lit 'EQ settings &raquo;'; end;
     end;
    end;
    Tr; th 'Dynamics';
+    td; _col 'use_dyn_preset', $mod; end;
     td; _col 'dyn_on_off', $mod; end;
     td;
      a href => "#", onclick => "return conf_dyn(\"module\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
@@ -405,34 +526,14 @@ sub conf {
    end;
    Tr; td colspan => 3, style => 'background: none', ''; end;
    Tr; th colspan => 3, 'Module'; end;
+   Tr; th 'Use at'; td rowspan =>2, colspan => 2; _col 'use_mod_preset', $mod; end;
+   Tr; th 'source select';
    Tr; th 'Level'; td colspan => 2; _col 'mod_level', $mod; end; end;
    Tr; th 'State'; td colspan => 2; _col 'mod_on_off', $mod; end; end;
    Tr; td colspan => 3, style => 'background: none', ''; end;
   end;
-  table;
-   Tr;
-    th colspan => 5;
-     txt "Routing";
-    end;
-   end;
-   Tr;
-    th '';
-    th 'Level';
-    th 'State';
-    th 'Pre/post';
-    th 'Balance';
-   end;
-   for my $b (@$bus) {
-     next if !$mod->{$busses[$b->{number}-1].'_assignment'};
-     Tr;
-      th $b->{label};
-      td; _col $busses[$b->{number}-1].'_level', $mod; end;
-      td; _col $busses[$b->{number}-1].'_on_off', $mod; end;
-      td; _col $busses[$b->{number}-1].'_pre_post', $mod; end;
-      td; _col $busses[$b->{number}-1].'_balance', $mod; end;
-     end;
-   }
-  end;
+  _routingtable($mod, $bus, '');
+
   $self->htmlFooter;
 }
 
@@ -440,7 +541,7 @@ sub conf {
 sub ajax {
   my $self = shift;
 
-  my @booleans = qw|lc_on_off insert_on_off phase_on_off mono_on_off eq_on_off dyn_on_off mod_on_off|;
+  my @booleans = qw|use_gain_preset use_lc_preset use_insert_preset use_phase_preset use_mono_preset use_eq_preset use_dyn_preset use_mod_preset lc_on_off insert_on_off phase_on_off mono_on_off eq_on_off dyn_on_off mod_on_off|;
 
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
@@ -453,14 +554,15 @@ sub ajax {
     { name => 'source_b_preset', required => 0, template => 'int' },
     { name => 'source_c_preset', required => 0, template => 'int' },
     { name => 'source_d_preset', required => 0, template => 'int' },
-    { name => 'insert_source', required => 0, template => 'int' },
-    { name => 'mod_level', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'gain', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'lc_frequency', required => 0, template => 'int' },
+    { name => 'insert_source', required => 0, template => 'int' },
     { name => 'phase', required => 0, template => 'int' },
     { name => 'mono', required => 0, template => 'int' },
+    { name => 'mod_level', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     (map +{ name => $_, required => 0, enum => [0,1] }, @booleans),
     map +(
+      { name => "${_}_use_preset", required => 0, enum => [0,1] },
       { name => "${_}_level", required => 0 },
       { name => "${_}_on_off", required => 0, enum => [0,1] },
       { name => "${_}_pre_post", required => 0, enum => [0,1] },
@@ -473,11 +575,12 @@ sub ajax {
   defined $f->{$_} && ($f->{$_} *= 511)
     for (map "${_}_balance", @busses);
   defined $f->{$_} and ((($_ =~ /source_[a|b|c|d]_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
-    for(@booleans, qw|source_a source_b source_c source_d source_a_preset source_b_preset source_c_preset source_d_preset insert_source mod_level lc_frequency gain phase mono|, map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
+    for(@booleans, qw|source_a source_b source_c source_d source_a_preset source_b_preset source_c_preset source_d_preset
+                      insert_source mod_level lc_frequency gain phase mono|, map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
-    $f->{field} =~ /preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : (
+    $f->{field} =~ /source_[a|b|c|d]_preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : (
       $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ()
     );
 }
@@ -520,6 +623,31 @@ sub dynajax {
   _dyntable $f;
 }
 
+sub rpajax {
+  my($self, $type) = @_;
+
+  my $f = $self->formValidate(
+    { name => 'field', template => 'asciiprint' },
+    { name => 'item', template => 'int' },
+    map +(
+      { name => "${_}_use_preset", required => 0, enum => [0,1] },
+      { name => "${_}_level", required => 0 },
+      { name => "${_}_on_off", required => 0, enum => [0,1] },
+      { name => "${_}_pre_post", required => 0, enum => [0,1] },
+      { name => "${_}_balance", required => 0, enum => [0..2] },
+    ), @busses
+  );
+  return 404 if $f->{_err};
+
+  my %set;
+  defined $f->{$_} && ($f->{$_} *= 511)
+    for (map "${_}_balance", @busses);
+  defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
+    for(map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
+
+  $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_input = ?', \%set, $f->{item}, $type) if keys %set;
+  _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} }, $type;
+}
 
 1;
 
