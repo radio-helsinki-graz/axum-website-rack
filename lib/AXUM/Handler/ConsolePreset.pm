@@ -1,0 +1,174 @@
+
+package AXUM::Handler::ConsolePreset;
+
+use strict;
+use warnings;
+use YAWF ':html';
+
+YAWF::register(
+  qr{consolepreset}               => \&consolepreset,
+  qr{ajax/consolepreset}             => \&ajax,
+);
+
+my @buss_names = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
+my @ext_names = map sprintf('ext_%d', $_), 1..8;
+
+# display the value of a column
+# arguments: column name, database return object
+sub _col {
+  my($n, $d, $lst) = @_;
+  my $v = $d->{$n};
+
+  if($n eq 'pos') {
+    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "console_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+  }
+  if($n eq 'label') {
+    (my $jsval = $v) =~ s/\\/\\\\/g;
+    $jsval =~ s/"/\\"/g;
+    a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+  }
+  if ($n eq 'input') {
+    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "input_list", "Select input preset", "Save")', $d->{number}, $n, $v), 'Input '.$v;
+  }
+  if ($n eq 'buss_preset') {
+    my $s->{label} = 'none';
+    for my $l (@$lst) {
+      if ($l->{number} == $v)
+      {
+        $s = $l;
+      }
+    }
+    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "buss_preset_list", "Select buss preset", "Save")', $d->{number}, $n, $v),
+      ($s->{label} eq 'none') ? (class => 'off') : (), $s->{label};
+  }
+}
+
+sub _create_console_preset {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'label', minlength => 1, maxlength => 32 },
+  );
+  die "Invalid input" if $f->{_err};
+
+  # get new free preset number
+  my $num = $self->dbRow(q|SELECT gen
+    FROM generate_series(1, COALESCE((SELECT MAX(number)+1 FROM console_preset), 1)) AS g(gen)
+    WHERE NOT EXISTS(SELECT 1 FROM console_preset WHERE number = gen)
+    LIMIT 1|
+  )->{gen};
+  # insert row
+  $self->dbExec(q|
+    INSERT INTO console_preset (number, label) VALUES (!l)|,
+    [ $num, $f->{label}]);
+  $self->dbExec("SELECT console_preset_renumber()");
+  $self->resRedirect('/consolepreset', 'post');
+}
+
+sub consolepreset {
+  my $self = shift;
+
+  # if POST, insert new preset
+  return _create_console_preset($self) if $self->reqMethod eq 'POST';
+
+  # if del, remove source
+  my $f = $self->formValidate({name => 'del', template => 'int'});
+  if(!$f->{_err}) {
+    $self->dbExec('DELETE FROM console_preset WHERE number = ?', $f->{del});
+    $self->dbExec("SELECT console_preset_renumber()");
+    return $self->resRedirect('/consolepreset', 'temp');
+  }
+  my $presets = $self->dbAll(q|SELECT pos, number, label, input, buss_preset
+    FROM console_preset ORDER BY pos|);
+
+  my $buss_preset = $self->dbAll(q|SELECT pos, number, label FROM buss_preset ORDER BY pos|);
+
+  $self->htmlHeader(title => 'Console presets', page => 'consolepreset');
+  div id => 'console_preset_list', class => 'hidden';
+   Select;
+    my $max_pos;
+    $max_pos = 0;
+    for (@$presets) {
+      option value => "$_->{pos}", $_->{label};
+      $max_pos = $_->{pos} if ($_->{pos} > $max_pos);
+    }
+    option value => $max_pos+1, "last";
+   end;
+  end;
+  div id => 'input_list', class => 'hidden';
+   Select;
+    option value => $_, 'Input '.$_ for ('A'..'D');
+   end;
+  end;
+  div id => 'buss_preset_list', class => 'hidden';
+   Select;
+    option value => $_->{number}, $_->{label} for (@$buss_preset); 
+   end;
+  end;
+  table;
+   Tr; th colspan => 5, 'Console presets'; end;
+   Tr;
+    th 'Nr';
+    th 'Label';
+    th 'Select module input';
+    th 'Mix/Monitor buss preset';
+    th '';
+   end;
+
+   for my $p (@$presets) {
+     Tr;
+      th; _col 'pos', $p; end;
+      td; _col 'label', $p; end;
+      td; _col 'input', $p; end;
+      td; _col 'buss_preset', $p, $buss_preset; end;
+      td;
+       a href => '/consolepreset?del='.$p->{number}, title => 'Delete';
+        img src => '/images/delete.png', alt => 'delete';
+       end;
+      end;
+     end;
+   }
+  end;
+  br; br;
+  a href => '#', onclick => 'return conf_addpreset(this)', 'Create new console preset';
+
+  $self->htmlFooter;
+}
+
+sub ajax {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'field', template => 'asciiprint' }, # should have an enum property
+    { name => 'item', template => 'int' },
+    { name => 'label', required => 0, template => 'asciiprint' },
+    { name => 'pos', required => 0, template => 'int' },
+    { name => 'input', required => 0, regex => [ qr/[A|B|C|D]/, 0 ] },
+    { name => 'buss_preset', required => 0, template => 'int' },
+  );
+  return 404 if $f->{_err};
+
+  if($f->{field} eq 'pos') {
+    $self->dbExec("UPDATE console_preset SET pos =
+                   CASE
+                    WHEN pos < $f->{pos} AND number <> $f->{item} THEN pos
+                    WHEN pos >= $f->{pos} AND number <> $f->{item} THEN pos+1
+                    WHEN number = $f->{item} THEN $f->{pos}
+                    ELSE 9999
+                   END;");
+    $self->dbExec("SELECT console_preset_renumber();");
+    txt 'Wait for reload';
+  } else {
+    my %set;
+    defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
+      for(qw|label input buss_preset|);
+
+    $self->dbExec('UPDATE console_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
+    _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
+      ($f->{field} eq 'buss_preset') ? ($self->dbAll(q|SELECT number, label FROM buss_preset ORDER BY pos|)) : ();
+  }
+}
+
+
+1;
+

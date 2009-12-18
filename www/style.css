@@ -29,6 +29,7 @@ tr.inactive th { color: #999 }
 tr.inactive a { color: #aaf }
 tr.inactive td { color: #999 }
 tr.empty th { border: none; height: 20px; font-weight: normal; background: none; }
+#tr.empty th { border: none; height: 20px; font-weight: bold; background: none; }
 th.inactive { color: #999 }
 td.inactive { color: #999 }
 td.inactive a { color: #aaf }

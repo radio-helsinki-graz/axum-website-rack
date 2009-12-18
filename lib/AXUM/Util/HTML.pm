@@ -37,13 +37,22 @@ sub htmlHeader {
        }
      }
      if($o{page} eq 'preset') {
-       a href => '/preset', 'Presets';
+       a href => '/preset', 'Processing presets';
        if($o{section})
        {
          lit " &raquo; ";
          a href => "/preset/$o{section}", "Preset $o{section}";
        }
      }
+     if($o{page} eq 'busspreset') {
+       a href => '/busspreset', 'Buss presets';
+       if($o{section})
+       {
+         lit " &raquo; ";
+         a href => "/busspreset/$o{section}", "Buss preset $o{section}";
+       }
+     }
+     a href => '/consolepreset', 'Console presets' if $o{page} eq 'consolepreset';
      a href => '/externsrc', 'Extern source configuration' if $o{page} eq 'externsrc';
      a href => '/dest', 'Destination configuration' if $o{page} eq 'dest';
      a href => '/talkback', 'Talkback configuration' if $o{page} eq 'talkback';

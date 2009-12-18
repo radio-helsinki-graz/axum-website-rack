@@ -116,7 +116,6 @@ sub generate {
     my $mod_busses = $self->dbAll('SELECT b.number-1 AS buss_number, m.number AS module_number, b.console FROM buss_config b LEFT JOIN module_config m ON b.console = m.console WHERE m.number = ? ORDER BY b.number', $_);
 
     my %set = map +("$busses[$_->{buss_number}] = ?", 'true'), @$mod_busses;
-    lit Dumper(\%set)." - $_ <BR>";
     $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $_);
   }
 

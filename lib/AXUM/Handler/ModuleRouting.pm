@@ -4,7 +4,6 @@ package AXUM::Handler::ModuleRouting;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper 'Dumper';
 
 
 YAWF::register(

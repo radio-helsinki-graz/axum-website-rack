@@ -94,7 +94,7 @@ function conf_set(page, item, field, value, obj) {
   ajax('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value), function(h) {
     obj.innerHTML = h.responseText;
     remove_input(input_obj);
-    if(((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'service')) && (field == 'pos'))
+    if(((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos'))
     {
       location.reload(true);
     }
@@ -499,3 +499,14 @@ function conf_tz( obj) {
   return false;
 }
 
+function toggle_visibility(id, obj)
+{
+  var l;
+  l = document.getElementById(id);
+  if (l.className == "") {
+    l.className = "hidden";
+  } else {
+    l.className = "";
+  }
+  return false;
+}

@@ -15,8 +15,15 @@ YAWF::register(
 sub _col {
   my($n, $d, $lst) = @_;
   my $v = $d->{$n};
-  a href => '#', onclick => sprintf('return conf_select("externsrc", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
-    !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
+
+  if ($n =~ /^ext/) {
+    a href => '#', onclick => sprintf('return conf_select("externsrc", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
+      !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
+  }
+  if ($n =~ /^safe/) {
+    a href => '#', onclick => sprintf('return conf_set("externsrc", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+       ($v == 1)  ? (class => 'off', 'yes') : ('no');
+  }
 }
 
 
@@ -28,21 +35,28 @@ sub extsrc {
   my $mb = $self->dbAll('SELECT number, label, number <= dsp_count()*4 AS active
     FROM monitor_buss_config ORDER BY number');
   my $es = $self->dbAll('SELECT number, !s FROM extern_src_config ORDER BY number',
-    join ', ', map "ext$_", 1..8);
+    join ', ', map("ext$_", 1..8), map("safe$_", 1..8));
 
   $self->htmlHeader(title => 'Extern source configuration', page => 'externsrc');
   $self->htmlSourceList($pos_lst, 'matrix_sources');
 
   table;
-   Tr; th colspan => 10, 'Extern source configuration'; end;
+   Tr; th colspan => 18, 'Extern source configuration'; end;
    Tr;
     th colspan => 2, 'Monitor bus';
-    th colspan => 8, 'Extern source';
+    th colspan => 16, 'Extern source';
+   end;
+   Tr;
+    th colspan => 2, '';
+    th colspan => 2, "Ext $_" for (1..8);
    end;
    Tr;
     th 'Nr.';
     th 'Label';
-    th "Ext $_" for (1..8);
+    for (1..8) {
+      th 'Safe';
+      th 'Source';
+    }
    end;
 
    for my $m (@$mb) {
@@ -50,6 +64,7 @@ sub extsrc {
       th $m->{number};
       td $m->{label};
       $m->{number} % 4 == 1 and do {for (1..8) {
+        td rowspan => 4; _col "safe$_", $es->[($m->{number}-1)/4]; end;
         td rowspan => 4; _col "ext$_", $es->[($m->{number}-1)/4], $src_lst; end;
       }};
      end;
@@ -67,12 +82,15 @@ sub ajax {
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
-    map +{ name => "ext$_", required => 0, enum => $enum }, 1..8
+    map( +{ name => "ext$_", required => 0, enum => $enum }, 1..8),
+    map( +{ name => "safe$_", required => 0, enum => $enum }, 1..8),
   );
   return 404 if $f->{_err};
 
   my %set;
   defined $f->{"ext$_"} and ($set{"ext$_ = ?"} = $f->{"ext$_"})
+    for(1..8);
+  defined $f->{"safe$_"} and ($set{"safe$_ = ?"} = $f->{"safe$_"})
     for(1..8);
 
   $self->dbExec('UPDATE extern_src_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;

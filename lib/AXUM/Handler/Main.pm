@@ -37,6 +37,10 @@ sub home {
    Tr; th $i++; td; a href => '/module/assign', 'Module assignment'; end; end;
    Tr; th $i++; td; a href => '/module', 'Module configuration'; end; end;
    Tr class => 'empty'; th colspan => 2; end; end;
+   Tr; th colspan => 2, 'Console settings'; end;
+   Tr; th $i++; td; a href => '/busspreset', 'Mix/monitor buss presets'; end; end;
+   Tr; th $i++; td; a href => '/consolepreset', 'Console presets'; end; end;
+   Tr class => 'empty'; th colspan => 2; end; end;
    Tr; th colspan => 2, 'Hardware settings'; end;
    Tr; th $i++; td; a href => '/surface', 'Surface configuration'; end; end;
    Tr; th $i++; td; a href => '/rack', 'Rack configuration'; end; end;

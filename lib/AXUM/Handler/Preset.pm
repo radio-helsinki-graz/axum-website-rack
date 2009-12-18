@@ -4,7 +4,6 @@ package AXUM::Handler::Preset;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
 
 YAWF::register(
   qr{preset}        => \&preset_overview,
@@ -196,7 +195,7 @@ sub preset_overview {
   my $presets = $self->dbAll(q|SELECT pos, number, label
     FROM src_preset ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Presets', page => 'preset');
+  $self->htmlHeader(title => 'Processing presets', page => 'preset');
   div id => 'preset_list', class => 'hidden';
    Select;
     my $max_pos;
@@ -210,7 +209,7 @@ sub preset_overview {
   end;
 
   table;
-   Tr; th colspan => 34, 'Preset'; end;
+   Tr; th colspan => 34, 'Processing preset'; end;
    Tr;
     th 'Nr';
     th 'Label';

@@ -33,7 +33,7 @@ sub overview {
       b.label AS label_b, b.active AS active_b, pb.label AS label_b_preset,
       c.label AS label_c, c.active AS active_c, pc.label AS label_c_preset,
       d.label AS label_d, d.active AS active_d, pd.label AS label_d_preset,
-      m.insert_on_off, m.lc_on_off, m.eq_on_off, m.dyn_on_off
+      m.insert_on_off, m.lc_on_off, m.eq_on_off, m.dyn_on_off, m.console
     FROM module_config m
     LEFT JOIN matrix_sources a ON a.number = m.source_a
     LEFT JOIN matrix_sources b ON b.number = m.source_b
@@ -77,9 +77,13 @@ sub overview {
       th '';
       th sprintf 'Module %d', $mod->[$_]{number} for (@m);
      end;
+     Tr $p > $dspcount ? (class => 'inactive') : ();
+      th 'Console';
+      td sprintf '%d', $mod->[$_]{console} for (@m);
+     end;
      for my $src ('a', 'b', 'c', 'd') {
        Tr $p > $dspcount ? (class => 'inactive') : ();
-        th "Source \u$src";
+        th "Input \u$src";
         for (@m) {
           td;
            a href => "/module/$mod->[$_]{number}",
@@ -345,7 +349,6 @@ sub _routingtable {
 
 sub conf {
   my($self, $nr) = @_;
-
 
   my $bsel;
   $bsel .= "${_}_use_preset, ${_}_level, ${_}_on_off, ${_}_pre_post, ${_}_balance, ${_}_assignment, "
