@@ -23,8 +23,9 @@ sub service {
    Tr; th 1; td; a href => '/service/mambanet', 'MambaNet node overview'; end; end;
    Tr; th 2; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current sources and generate new sources?", "/source/generate")', 'Generate sources'; end; end;
    Tr; th 3; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current destination and generate new destinations?", "/dest/generate")', 'Generate destinations'; end; end;
-   Tr; th 4; td; a href => '/service/predefined', 'Stored configurations'; end; end;
-   Tr; th 5; td; a href => '/service/functions', 'Engine functions'; end; end;
+   Tr; th 4; td; a href => '/service/templates', 'Templates'; end; end;
+   Tr; th 5; td; a href => '/service/predefined', 'Stored configurations'; end; end;
+   Tr; th 6; td; a href => '/service/functions', 'Engine functions'; end; end;
   end;
   $self->htmlFooter;
 }

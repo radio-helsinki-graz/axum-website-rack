@@ -8,6 +8,7 @@ use YAWF ':html';
 YAWF::register(
   qr{service/mambanet} => \&list,
   qr{service/predefined} => \&listpre,
+  qr{service/templates} => \&listtemp,
   qr{ajax/mambanet} => \&ajax,
   qr{ajax/id_list} => \&id_list,
   qr{ajax/change_conf} => \&change_conf,
@@ -149,6 +150,56 @@ sub listpre {
       td;
        $p->{cfg_name} =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
        a href => '/service/predefined?del='.$p->{cfg_name}.";man=".$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
+        img src => '/images/delete.png', alt => 'delete';
+       end;
+      end;
+     end;
+   }
+  end;
+  $self->htmlFooter;
+}
+
+sub listtemp {
+  my $self = shift;
+
+  # if del, remove mambanet address
+  # if refresh, update address table
+  my $f = $self->formValidate(
+    { name => 'del', required => 0, maxlength => 32, minlength => 1 },
+    { name => 'man', required => 0, template => 'int' },
+    { name => 'prod', required => 0, template => 'int' },
+    { name => 'firm', required => 0, template => 'int' },
+  );
+
+  if(!$f->{_err}) {
+    $f->{del} ? ($self->dbExec('DELETE FROM templates WHERE man_id = ? AND prod_id = ? AND firm_major = ?', $f->{man}, $f->{prod}, $f->{firm})) : ();
+    $f->{del} ? (return $self->resRedirect('/service/templates', 'temp')) : ();
+  }
+
+  my $pre_cfg = $self->dbAll("SELECT t.man_id, t.prod_id, t.firm_major, COUNT(*) AS cnt
+                              FROM templates t
+                              GROUP BY t.man_id, t.prod_id, t.firm_major
+                              ORDER BY t.man_id, t.prod_id, t.firm_major");
+
+  $self->htmlHeader(title => 'MambaNet templates', page => 'service', section => 'templates');
+  table;
+   Tr; th colspan => 6, 'MambaNet templates'; end;
+   Tr;
+    th 'ManID';
+    th 'ProdID';
+    th 'Major';
+    th 'count';
+    th '';
+   end;
+   for my $p (@$pre_cfg) {
+     Tr;
+      td sprintf("%04X", $p->{man_id});
+      td sprintf("%04X", $p->{prod_id});
+      td $p->{firm_major};
+      td $p->{cnt};
+      td;
+       $p->{cfg_name} =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
+       a href => '/service/templates?del=true;man='.$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
