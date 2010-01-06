@@ -158,7 +158,6 @@ sub _funcname {
    } else {
      my $name = $self->dbRow('SELECT name FROM functions WHERE (func).type = ? AND (func).func = ? ORDER BY pos', $f1, $f3)->{name};
      $name =~ s{Buss \d+/(\d+)}{$buss->[$1/2-1]}ieg;
-     $name =~ s/Routing preset (\d+)/Routing preset @$preset[0]->{"routing_preset_$1_label"}/g;
      txt 'Module '.($f2+1).': ' if $f1 == 0;
      txt $buss->[$f2].': ' if $f1 == 1;
      txt $self->dbRow('SELECT label FROM monitor_buss_config WHERE number = ?', $f2+1)->{label}.': ' if $f1 == 2;
@@ -195,7 +194,6 @@ sub conf {
     oct "0x$addr"
   );
   my $buss = [ map $_->{label}, @{$self->dbAll('SELECT label FROM buss_config ORDER BY number')} ];
-  my $preset = $self->dbAll('SELECT routing_preset_1_label, routing_preset_2_label, routing_preset_3_label, routing_preset_4_label, routing_preset_5_label, routing_preset_6_label, routing_preset_7_label, routing_preset_8_label FROM global_config');
 
   my $name = $self->dbRow($type eq 'rack'
     ? 'SELECT a.name, s.slot_nr FROM addresses a JOIN slot_config s ON s.addr = a.addr WHERE a.addr = ?'
@@ -220,7 +218,7 @@ sub conf {
       td;
        _funcname $self, $addr, $o->{number},
          $o->{func} && $o->{func} =~ /(\d+),(\d+),(\d+)/ ? ($1, $2, $3) : (-1,0,0),
-         $o->{sensor_type}, $o->{actuator_type}, $buss, $preset;
+         $o->{sensor_type}, $o->{actuator_type}, $buss;
       end;
      end;
    }
@@ -239,7 +237,6 @@ sub funclist {
 
   my @buss = map $_->{label}, @{$self->dbAll('SELECT label FROM buss_config ORDER BY number')};
   my @mbuss = map $_->{label}, @{$self->dbAll('SELECT label FROM monitor_buss_config ORDER BY number')};
-  my $preset = $self->dbAll('SELECT routing_preset_1_label, routing_preset_2_label, routing_preset_3_label, routing_preset_4_label, routing_preset_5_label, routing_preset_6_label, routing_preset_7_label, routing_preset_8_label FROM global_config');
   my $src = $self->dbAll('SELECT number, label FROM src_config ORDER BY pos');
   my $dest = $self->dbAll('SELECT number, label FROM dest_config ORDER BY pos');
   my $dspcount = $self->dbRow('SELECT dsp_count() AS cnt')->{cnt};
@@ -254,7 +251,6 @@ sub funclist {
     push @{$func[$_->{type}]}, $_;
     delete $_->{type};
     $_->{name} =~ s{Buss \d+/(\d+)}{$buss[$1/2-1]}ieg;
-    $_->{name} =~ s/Routing preset (\d+)/Routing preset @$preset[0]->{"routing_preset_$1_label"}/g;
   }
 
   # main select box
@@ -337,8 +333,7 @@ sub setfunc {
       $self->dbExec('INSERT INTO node_config (addr, object, func) VALUES (?, ?, (?,?,?))', oct "0x$f->{addr}", $f->{nr}, $f1, $f2, $f3);
   }
   _funcname $self, $f->{addr}, $f->{nr}, $f1, $f2, $f3, $f->{sensor}, $f->{actuator},
-    [ map $_->{label}, @{$self->dbAll('SELECT label FROM buss_config ORDER BY number')} ],
-    $self->dbAll('SELECT routing_preset_1_label, routing_preset_2_label, routing_preset_3_label, routing_preset_4_label, routing_preset_5_label, routing_preset_6_label, routing_preset_7_label, routing_preset_8_label FROM global_config');
+    [ map $_->{label}, @{$self->dbAll('SELECT label FROM buss_config ORDER BY number')} ];
 }
 
 

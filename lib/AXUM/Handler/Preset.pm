@@ -52,9 +52,6 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_set("preset", %d, "%s", %d, this)', $d->{number}, $n, $v?0:1),
      $v ? 'yes' : (class => 'off', 'no');
   }
-  if ($n eq 'routing_preset') {
-    a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "routing_preset_list")', $d->{number}, $n, $v), $lst->{"routing_preset_".$v."_label"};
-  }
   if($n eq 'phase') {
     a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "phase_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $phase_types[$v];
@@ -296,23 +293,13 @@ sub preset {
          dyn_on_off,
          use_mod_preset,
          mod_lvl,
-         mod_on_off,
-         routing_preset
+         mod_on_off
          FROM src_preset
          WHERE number = ?|, $nr);
   return 404 if !$preset->{number};
 
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
-  my $routing_lst = $self->dbRow(q|SELECT routing_preset_1_label,
-                                          routing_preset_2_label,
-                                          routing_preset_3_label,
-                                          routing_preset_4_label,
-                                          routing_preset_5_label,
-                                          routing_preset_6_label,
-                                          routing_preset_7_label,
-                                          routing_preset_8_label
-                                          FROM global_config|);
 
   $self->htmlHeader(page => 'preset', section => $nr, title => "Preset $preset->{label}");
   $self->htmlSourceList($pos_lst, 'matrix_sources');
@@ -321,14 +308,6 @@ sub preset {
   end;
   div id => 'dyn_table_container', class => 'hidden';
    _dyntable($preset);
-  end;
-  div id => 'routing_preset_list', class => 'hidden';
-   Select;
-    foreach my $r (sort keys %$routing_lst) {
-      (my $number) = $r  =~ /(\d+)/;
-      option value => $number, $$routing_lst{$r};
-    }
-   end;
   end;
   div id => 'phase_list', class => 'hidden';
    Select;
@@ -402,11 +381,6 @@ sub preset {
     td; _col 'mod_on_off', $preset; end;
     td; _col 'mod_lvl', $preset; end;
    end;
-   Tr; th 'Routing';
-    td '-';
-    td '-';
-    td; _col 'routing_preset', $preset, $routing_lst; end;
-   end;
   end;
   $self->htmlFooter;
 }
@@ -427,7 +401,6 @@ sub ajax {
     { name => 'phase', required => 0, template => 'int' },
     { name => 'mono', required => 0, template => 'int' },
     { name => 'mod_lvl', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
-    { name => 'routing_preset', required => 0, template => 'int' },
     (map +{ name => $_, required => 0, enum => [0,1] }, @booleans),
     { name => 'pos', required => 0, template => 'int' },
   );
@@ -448,21 +421,11 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label gain lc_frequency insert_source phase mono dyn_amount mod_lvl routing_preset|, (map($_, @booleans)));
+      for(qw|label gain lc_frequency insert_source phase mono dyn_amount mod_lvl|, (map($_, @booleans)));
 
       $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
-        $f->{field} =~ /routing_preset/ ? $self->dbRow(q|SELECT routing_preset_1_label,
-                                                                routing_preset_2_label,
-                                                                routing_preset_3_label,
-                                                                routing_preset_4_label,
-                                                                routing_preset_5_label,
-                                                                routing_preset_6_label,
-                                                                routing_preset_7_label,
-                                                                routing_preset_8_label
-                                                                FROM global_config|) : (
-        $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ()
-                                                            );
+        $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ();
   }
 }
 
