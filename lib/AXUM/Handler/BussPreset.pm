@@ -168,7 +168,7 @@ sub busspreset {
   my $label = $self->dbRow(q|SELECT label FROM buss_preset WHERE number = ?|, $nr);
 
   my $busses = $self->dbAll(q|
-    SELECT bp.number, bp.buss, bp.use_preset, bp.pre_on, bp.pre_level, bp.pre_balance, bp.level, bp.on_off, bp.interlock, bp.exclusive, bp.global_reset,
+    SELECT bp.number, bp.buss, bp.use_preset, bp.level, bp.on_off,
            bc.label, bc.console
       FROM buss_preset_rows bp 
       JOIN buss_config bc ON bc.number = bp.buss
