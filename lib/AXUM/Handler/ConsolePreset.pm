@@ -4,6 +4,7 @@ package AXUM::Handler::ConsolePreset;
 use strict;
 use warnings;
 use YAWF ':html';
+use Data::Dumper;
 
 YAWF::register(
   qr{consolepreset}               => \&consolepreset,
@@ -28,18 +29,22 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if ($n eq 'input') {
-    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "input_list", "Select input preset", "Save")', $d->{number}, $n, $v), 'Input '.$v;
+    $v ? () : ($v = 'NULL');
+    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "input_list", "Select input preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ('Input '.$v);
   }
   if ($n eq 'buss_preset') {
-    my $s->{label} = 'none';
+    my $s->{label} = 'None';
     for my $l (@$lst) {
-      if ($l->{number} == $v)
-      {
+      if ($l->{number} == $v) {
         $s = $l;
       }
     }
     a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "buss_preset_list", "Select buss preset", "Save")', $d->{number}, $n, $v),
       ($s->{label} eq 'none') ? (class => 'off') : (), $s->{label};
+  }
+  if ($n =~ /console[1|2|3|4]/) {
+   a href => '#', onclick => sprintf('return conf_set("consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+     $v ? 'y' : (class => 'off', 'n');
   }
 }
 
@@ -78,7 +83,7 @@ sub consolepreset {
     $self->dbExec("SELECT console_preset_renumber()");
     return $self->resRedirect('/consolepreset', 'temp');
   }
-  my $presets = $self->dbAll(q|SELECT pos, number, label, input, buss_preset
+  my $presets = $self->dbAll(q|SELECT pos, number, label, console1, console2, console3, console4, input, buss_preset
     FROM console_preset ORDER BY pos|);
 
   my $buss_preset = $self->dbAll(q|SELECT pos, number, label FROM buss_preset ORDER BY pos|);
@@ -97,19 +102,26 @@ sub consolepreset {
   end;
   div id => 'input_list', class => 'hidden';
    Select;
+    option value => 'NULL', 'None';
     option value => $_, 'Input '.$_ for ('A'..'D');
    end;
   end;
   div id => 'buss_preset_list', class => 'hidden';
    Select;
+    option value => 'NULL', 'None';
     option value => $_->{number}, $_->{label} for (@$buss_preset); 
    end;
   end;
   table;
-   Tr; th colspan => 5, 'Console presets'; end;
+   Tr; th colspan => 9, 'Console presets'; end;
+   Tr; th colspan => 2, ''; th colspan => 4, 'Console'; th colspan => 3, ''; end;
    Tr;
     th 'Nr';
     th 'Label';
+    th '1';
+    th '2';
+    th '3';
+    th '4';
     th 'Select module input';
     th 'Mix/Monitor buss preset';
     th '';
@@ -119,6 +131,10 @@ sub consolepreset {
      Tr;
       th; _col 'pos', $p; end;
       td; _col 'label', $p; end;
+      td; _col 'console1', $p; end;
+      td; _col 'console2', $p; end;
+      td; _col 'console3', $p; end;
+      td; _col 'console4', $p; end;
       td; _col 'input', $p; end;
       td; _col 'buss_preset', $p, $buss_preset; end;
       td;
@@ -143,8 +159,9 @@ sub ajax {
     { name => 'item', template => 'int' },
     { name => 'label', required => 0, template => 'asciiprint' },
     { name => 'pos', required => 0, template => 'int' },
-    { name => 'input', required => 0, regex => [ qr/[A|B|C|D]/, 0 ] },
-    { name => 'buss_preset', required => 0, template => 'int' },
+    { name => 'input', required => 0, regex => [ qr/[NULL|A|B|C|D]/, 0 ] },
+    { name => 'buss_preset', required => 0, regex => [ qr/[NULL|\d{1,4}]/, 0] },
+    (map +{ name => "console$_", required => 0, enum => [0,1] }, 1..4),
   );
   return 404 if $f->{_err};
 
@@ -160,9 +177,8 @@ sub ajax {
     txt 'Wait for reload';
   } else {
     my %set;
-    defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label input buss_preset|);
-
+    defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_}))
+      for(qw|label console1 console2 console3 console4 input buss_preset|);
     $self->dbExec('UPDATE console_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
     _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
       ($f->{field} eq 'buss_preset') ? ($self->dbAll(q|SELECT number, label FROM buss_preset ORDER BY pos|)) : ();
