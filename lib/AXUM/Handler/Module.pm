@@ -83,7 +83,7 @@ sub overview {
      end;
      for my $src ('a', 'b', 'c', 'd') {
        Tr $p > $dspcount ? (class => 'inactive') : ();
-        th "Input \u$src";
+        th "Preset \u$src";
         for (@m) {
           td;
            a href => "/module/$mod->[$_]{number}",
@@ -385,24 +385,24 @@ sub conf {
     $bsel, $nr);
   return 404 if !$mod->{number};
 
-  my $rp_a = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+  my $rp_a = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
                             JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_input = 'A'|, $rp_bsel, $nr);
+                            WHERE mod_number = ? AND mod_preset = 'A'|, $rp_bsel, $nr);
   return 404 if !$rp_a->{mod_number};
 
-  my $rp_b = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+  my $rp_b = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
                             JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_input = 'B'|, $rp_bsel, $nr);
+                            WHERE mod_number = ? AND mod_preset = 'B'|, $rp_bsel, $nr);
   return 404 if !$rp_b->{mod_number};
 
-  my $rp_c = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+  my $rp_c = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
                             JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_input = 'C'|, $rp_bsel, $nr);
+                            WHERE mod_number = ? AND mod_preset = 'C'|, $rp_bsel, $nr);
   return 404 if !$rp_c->{mod_number};
 
-  my $rp_d = $self->dbRow(q|SELECT r.mod_number, r.mod_input, !s FROM routing_preset r
+  my $rp_d = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
                             JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_input = 'D'|, $rp_bsel, $nr);
+                            WHERE mod_number = ? AND mod_preset = 'D'|, $rp_bsel, $nr);
   return 404 if !$rp_d->{mod_number};
 
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
@@ -447,28 +447,28 @@ sub conf {
    Tr; th colspan => 4, "Configuration for module $nr"; end;
    Tr; th colspan => 2; th 'Processing'; th 'Routing'; end; end;
    Tr; th; th 'Source'; th 'Preset'; th 'Preset'; end; end;
-   Tr; th 'Input A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_a", this)', 'routing'; end;
+   Tr; th 'Preset A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_a", this)', 'routing'; end;
    Tr id => 'routing_a', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
      _routingtable($rp_a, $bus, 'A');
     end;
    end;
-   Tr; th 'Input B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_b", this)', 'routing'; end;
+   Tr; th 'Preset B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_b", this)', 'routing'; end;
    Tr id => 'routing_b', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
       _routingtable($rp_b, $bus, 'B');
     end;
    end;
-   Tr; th 'Input C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_c", this)', 'routing'; end;
+   Tr; th 'Preset C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_c", this)', 'routing'; end;
    Tr id => 'routing_c', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
       _routingtable($rp_c, $bus, 'C');
     end;
    end;
-   Tr; th 'Input D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_d", this)', 'routing'; end;
+   Tr; th 'Preset D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_d", this)', 'routing'; end;
    Tr id => 'routing_d', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
@@ -648,7 +648,7 @@ sub rpajax {
   defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
     for(map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
 
-  $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_input = ?', \%set, $f->{item}, $type) if keys %set;
+  $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_preset = ?', \%set, $f->{item}, $type) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} }, $type;
 }
 

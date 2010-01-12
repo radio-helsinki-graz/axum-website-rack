@@ -4,7 +4,6 @@ package AXUM::Handler::ConsolePreset;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
 
 YAWF::register(
   qr{consolepreset}               => \&consolepreset,
@@ -28,9 +27,9 @@ sub _col {
     $jsval =~ s/"/\\"/g;
     a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
-  if ($n eq 'input') {
+  if ($n eq 'mod_preset') {
     $v ? () : ($v = 'NULL');
-    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "input_list", "Select input preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ('Input '.$v);
+    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "mod_preset_list", "Select module preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ($v);
   }
   if ($n eq 'buss_preset') {
     my $s->{label} = 'None';
@@ -83,7 +82,7 @@ sub consolepreset {
     $self->dbExec("SELECT console_preset_renumber()");
     return $self->resRedirect('/consolepreset', 'temp');
   }
-  my $presets = $self->dbAll(q|SELECT pos, number, label, console1, console2, console3, console4, input, buss_preset
+  my $presets = $self->dbAll(q|SELECT pos, number, label, console1, console2, console3, console4, mod_preset, buss_preset
     FROM console_preset ORDER BY pos|);
 
   my $buss_preset = $self->dbAll(q|SELECT pos, number, label FROM buss_preset ORDER BY pos|);
@@ -100,10 +99,10 @@ sub consolepreset {
     option value => $max_pos+1, "last";
    end;
   end;
-  div id => 'input_list', class => 'hidden';
+  div id => 'mod_preset_list', class => 'hidden';
    Select;
     option value => 'NULL', 'None';
-    option value => $_, 'Input '.$_ for ('A'..'D');
+    option value => $_, $_ for ('A'..'D');
    end;
   end;
   div id => 'buss_preset_list', class => 'hidden';
@@ -122,7 +121,7 @@ sub consolepreset {
     th '2';
     th '3';
     th '4';
-    th 'Select module input';
+    th 'Module preset';
     th 'Mix/Monitor buss preset';
     th '';
    end;
@@ -135,7 +134,7 @@ sub consolepreset {
       td; _col 'console2', $p; end;
       td; _col 'console3', $p; end;
       td; _col 'console4', $p; end;
-      td; _col 'input', $p; end;
+      td; _col 'mod_preset', $p; end;
       td; _col 'buss_preset', $p, $buss_preset; end;
       td;
        a href => '/consolepreset?del='.$p->{number}, title => 'Delete';
@@ -159,7 +158,7 @@ sub ajax {
     { name => 'item', template => 'int' },
     { name => 'label', required => 0, template => 'asciiprint' },
     { name => 'pos', required => 0, template => 'int' },
-    { name => 'input', required => 0, regex => [ qr/[NULL|A|B|C|D]/, 0 ] },
+    { name => 'mod_preset', required => 0, regex => [ qr/[NULL|A|B|C|D]/, 0 ] },
     { name => 'buss_preset', required => 0, regex => [ qr/[NULL|\d{1,4}]/, 0] },
     (map +{ name => "console$_", required => 0, enum => [0,1] }, 1..4),
   );
@@ -178,7 +177,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_}))
-      for(qw|label console1 console2 console3 console4 input buss_preset|);
+      for(qw|label console1 console2 console3 console4 mod_preset buss_preset|);
     $self->dbExec('UPDATE console_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
     _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
       ($f->{field} eq 'buss_preset') ? ($self->dbAll(q|SELECT number, label FROM buss_preset ORDER BY pos|)) : ();
