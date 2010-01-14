@@ -620,8 +620,8 @@ sub dynajax {
   );
   return 404 if $f->{_err};
 
-  my %set = map +("$_ = ?" => $f->{$_}),
-    map +("d_exp_threshold", "agc_amount", "agc_threshold");
+  my %set = map +("$_ = ?" => $f->{$_}), "d_exp_threshold", "agc_amount", "agc_threshold";
+
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $nr);
   _dyntable $f;
 }
