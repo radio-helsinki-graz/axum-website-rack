@@ -49,7 +49,7 @@ sub overview {
   );
 
   my $where = "WHERE ";
-  $where .= "(${_}_assignment = true AND ((${_}_level > -80 AND ${_}_on_off = true) OR (${_}_pre_post = true))) OR "
+  $where .= "(${_}_assignment = true AND ${_}_use_preset = true) OR "
     for (@busses);
   $where .= "false";
 
@@ -123,7 +123,7 @@ sub overview {
           my @array = @$buss_cfg;
           my $enabled = "";
           ($enabled .= ($array[$_]{number} eq $mod->[$nr]{number})) for 0..$#array;
-          a href => "/module/$mod->[$_]{number}", ($enabled) ? ('enabled') : (class => 'off', 'none');
+          a href => "/module/$mod->[$_]{number}", ($enabled) ? ('active') : (class => 'off', 'inactive');
         end;
       }
      end;
@@ -447,28 +447,48 @@ sub conf {
    Tr; th colspan => 4, "Configuration for module $nr"; end;
    Tr; th colspan => 2; th 'Processing'; th 'Routing'; end; end;
    Tr; th; th 'Source'; th 'Preset'; th 'Preset'; end; end;
-   Tr; th 'Preset A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_a", this)', 'routing'; end;
+   my $u = 0;
+   for my $b (@$bus) {
+    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+    $u += $rp_a->{$busses[$b->{number}-1].'_use_preset'};
+   }
+   Tr; th 'Preset A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_a", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
    Tr id => 'routing_a', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
      _routingtable($rp_a, $bus, 'A');
     end;
    end;
-   Tr; th 'Preset B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_b", this)', 'routing'; end;
+   $u = 0;
+   for my $b (@$bus) {
+    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+    $u += $rp_b->{$busses[$b->{number}-1].'_use_preset'};
+   }
+   Tr; th 'Preset B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_b", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
    Tr id => 'routing_b', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
       _routingtable($rp_b, $bus, 'B');
     end;
    end;
-   Tr; th 'Preset C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_c", this)', 'routing'; end;
+   $u = 0;
+   for my $b (@$bus) {
+    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+    $u += $rp_c->{$busses[$b->{number}-1].'_use_preset'};
+   }
+   Tr; th 'Preset C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_c", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
    Tr id => 'routing_c', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
       _routingtable($rp_c, $bus, 'C');
     end;
    end;
-   Tr; th 'Preset D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'return toggle_visibility("routing_d", this)', 'routing'; end;
+   $u = 0;
+   for my $b (@$bus) {
+    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+    $u += $rp_d->{$busses[$b->{number}-1].'_use_preset'};
+   }
+   Tr; th 'Preset D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_d", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
    Tr id => 'routing_d', class => 'hidden';
     td '';
     td colspan => 3, style => 'padding: 10px';
