@@ -4,7 +4,7 @@ package AXUM::Handler::Rack;
 use strict;
 use warnings;
 use YAWF ':html';
-
+use Data::Dumper;
 
 YAWF::register(
   qr{rack} => \&list,
@@ -150,7 +150,7 @@ sub list {
 
 
 sub _funcname {
-  my($self, $addr, $num, $f1, $f2, $f3, $sens, $act, $buss, $preset) = @_;
+  my($self, $addr, $num, $f1, $f2, $f3, $sens, $act, $buss) = @_;
   a href => '#', onclick => sprintf('return conf_func("%s", %d, %d, %d, %d, %d, %d, this)',
     $addr, $num, $f1, $f2, $f3, $sens, $act), $f1 == -1 ? (class => 'off') : ();
    if($f1 == -1) {
@@ -163,7 +163,13 @@ sub _funcname {
      txt $self->dbRow('SELECT label FROM monitor_buss_config WHERE number = ?', $f2+1)->{label}.': ' if $f1 == 2;
      txt $self->dbRow('SELECT label FROM src_config WHERE number = ?', $f2+1)->{label}.': ' if $f1 == 5;
      txt $self->dbRow('SELECT label FROM dest_config WHERE number = ?', $f2+1)->{label}.': ' if $f1 == 6;
-     txt $name;
+     if ($name =~ /Console preset (\d+)/)
+     {
+       my $cp_lbl = $self->dbRow('SELECT label FROM console_preset WHERE number = ?', $1)->{label};
+       txt "Console preset: ".(($cp_lbl) ? ($cp_lbl) : ($1));
+     } else {
+       txt $name;
+     }
    }
   end;
 }
@@ -239,6 +245,7 @@ sub funclist {
   my @mbuss = map $_->{label}, @{$self->dbAll('SELECT label FROM monitor_buss_config ORDER BY number')};
   my $src = $self->dbAll('SELECT number, label FROM src_config ORDER BY pos');
   my $dest = $self->dbAll('SELECT number, label FROM dest_config ORDER BY pos');
+  my $preset = $self->dbAll('SELECT number, label FROM console_preset ORDER BY number');
   my $dspcount = $self->dbRow('SELECT dsp_count() AS cnt')->{cnt};
 
   my $where = join ' OR ',
@@ -251,6 +258,9 @@ sub funclist {
     push @{$func[$_->{type}]}, $_;
     delete $_->{type};
     $_->{name} =~ s{Buss \d+/(\d+)}{$buss[$1/2-1]}ieg;
+    if ($_->{name} =~ s/Console preset (\d+)/Console preset: /) {
+      $_->{name} .= (defined @$preset[$1-1]) ? (@$preset[$1-1]->{label}) : ($1);
+    }
   }
 
   # main select box
