@@ -11,6 +11,7 @@ YAWF::register(
   qr{ajax/buss} => \&ajax,
 );
 
+my @buss_names = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
 
 # display the value of a column
 # arguments: column name, database return object
@@ -25,13 +26,20 @@ sub _col {
     exclusive    => [0, 'yes', 'no'  ],
     on_off       => [1, 'On',  'Off' ],
     pre_on       => [0, 'Pre', 'Post'],
-    pre_level    => [0, 'Pre', 'Post'],
     pre_balance  => [0, 'Pre', 'Post'],
   );
 
   if($booleans{$n}) {
     a href => '#', onclick => sprintf('return conf_set("buss", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       ($v?1:0) == $booleans{$n}[0] ? (class => 'off') : (), $booleans{$n}[$v?1:2];
+    return;
+  }
+  if($n eq 'pre_level') {
+    my $pre = ($v != 0);
+    my $post = (($d->{count}-$v) != 0);
+
+    a href => '#', onclick => sprintf('return conf_set("buss", %d, "%s", "%s", this)', $d->{number}, $n, $pre?0:1),
+     ($pre ? ($post ? ('Pre/Post') : ('Pre')) : (class => 'off', 'Post'));
     return;
   }
   if($n eq 'level') {
@@ -54,8 +62,29 @@ sub buss {
   my $self = shift;
 
   my $busses = $self->dbAll(q|
-    SELECT number, label, pre_on, pre_level, pre_balance, level, on_off, interlock, exclusive, global_reset, console
-      FROM buss_config ORDER BY number ASC|);
+    SELECT  b.number, b.label, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console,
+    COUNT(*),
+    SUM(CASE WHEN m.buss_1_2_pre_post = true AND b.number = 1 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_3_4_pre_post = true AND b.number = 2 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_5_6_pre_post = true AND b.number = 3 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_7_8_pre_post = true AND b.number = 4 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_9_10_pre_post = true AND b.number = 5 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_11_12_pre_post = true AND b.number = 6 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_13_14_pre_post = true AND b.number = 7 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_15_16_pre_post = true AND b.number = 8 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_17_18_pre_post = true AND b.number = 9 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_19_20_pre_post = true AND b.number = 10 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_21_22_pre_post = true AND b.number = 11 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_23_24_pre_post = true AND b.number = 12 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_25_26_pre_post = true AND b.number = 13 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_27_28_pre_post = true AND b.number = 14 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_29_30_pre_post = true AND b.number = 15 THEN 1 ELSE 0 END) +
+    SUM(CASE WHEN m.buss_31_32_pre_post = true AND b.number = 16 THEN 1 ELSE 0 END) AS pre_level
+    FROM module_config m
+    JOIN buss_config b ON b.console = m.console
+    WHERE m.number <= dsp_count()*32
+    GROUP BY b.number, b.label, b.pre_on, pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console
+    ORDER BY b.number ASC|);
 
   $self->htmlHeader(title => 'Buss configuration', page => 'buss');
   div id => 'console_list', class => 'hidden';
@@ -117,12 +146,20 @@ sub ajax {
   );
   return 404 if $f->{_err};
 
-  my %set;
-  defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-    for(qw|console global_reset interlock exclusive on_off pre_on pre_level pre_balance level label|);
+  if ($f->{field} eq 'pre_level') {
+    my %set;
+    $set{"$buss_names[$f->{item}-1]_pre_post = ?"} = $f->{$f->{field}};
+    $self->dbExec('UPDATE module_config !H WHERE number <= dsp_count()*32 AND console = (SELECT console FROM buss_config WHERE number = ?)', \%set, $f->{item});
 
-  $self->dbExec('UPDATE buss_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
-  _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
+    _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, count => 1};
+  } else {
+    my %set;
+    defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
+      for(qw|console global_reset interlock exclusive on_off pre_on pre_balance level label|);
+
+    $self->dbExec('UPDATE buss_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
+    _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
+  }
 }
 
 
