@@ -28,10 +28,6 @@ sub _col {
     $jsval =~ s/"/\\"/g;
     a href => '#', onclick => sprintf('return conf_text("preset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
-  if($n eq 'insert_source') {
-    a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
-      !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
-  }
   if($n eq 'gain') {
     a href => '#', onclick => sprintf('return conf_level("preset", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
@@ -246,7 +242,6 @@ sub preset {
          lc_frequency,
          lc_on_off,
          use_insert_preset,
-         insert_source,
          insert_on_off,
          use_phase_preset,
          phase,
@@ -298,11 +293,7 @@ sub preset {
          WHERE number = ?|, $nr);
   return 404 if !$preset->{number};
 
-  my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
-  my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
-
   $self->htmlHeader(page => 'preset', section => $nr, title => "Preset $preset->{label}");
-  $self->htmlSourceList($pos_lst, 'matrix_sources');
   div id => 'eq_table_container', class => 'hidden';
    _eqtable($preset);
   end;
@@ -350,7 +341,7 @@ sub preset {
    Tr; th 'Insert';
     td; _col 'use_insert_preset', $preset; end;
     td; _col 'insert_on_off', $preset; end;
-    td; _col 'insert_source', $preset, $src_lst; end;
+    td '-';
    end;
    Tr; th 'Phase';
     td; _col 'use_phase_preset', $preset; end;
@@ -395,7 +386,6 @@ sub ajax {
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
     { name => 'label', required => 0, maxlength => 32, minlength => 1 },
-    { name => 'insert_source', required => 0, 'int' },
     { name => 'gain', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'lc_frequency', required => 0, template => 'int' },
     { name => 'phase', required => 0, template => 'int' },
@@ -421,7 +411,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label gain lc_frequency insert_source phase mono dyn_amount mod_lvl|, (map($_, @booleans)));
+      for(qw|label gain lc_frequency phase mono dyn_amount mod_lvl|, (map($_, @booleans)));
 
       $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
