@@ -13,6 +13,7 @@ YAWF::register(
   qr{ajax/module/([A|B|C|D])} => \&rpajax,
   qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
   qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
+  qr{ajax/module2console} => \&m2cajax,
 );
 
 my @phase_types = ('Normal', 'Left', 'Right', 'Both');
@@ -208,6 +209,10 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number , $n, $v?0:1),
       $v ? 'yes' : (class => 'off', 'no');
   }
+  if ($n =~ /^m2c_(\w+)/) {
+    lit '&raquo;';
+    a href => '#', onclick => sprintf('return conf_set("module2console", %d, "%s", 1, this)', $number, $1), class => 'off', "To all console $d->{console} modules";
+  }
 }
 
 
@@ -309,6 +314,9 @@ sub _routingtable {
    th colspan => 6;
     txt "Routing $type";
    end;
+   if ($type eq '') {
+     td; _col 'm2c_routing', $mod; end;
+   }
   end;
   Tr;
    th '';
@@ -361,10 +369,11 @@ sub conf {
   $rp_bsel .= "false";
 
   my $mod = $self->dbRow(q|
-    SELECT number, source_a, source_a_preset,
-                   source_b, source_b_preset,
-                   source_c, source_c_preset,
-                   source_d, source_d_preset,
+    SELECT number, console,
+      source_a, source_a_preset,
+      source_b, source_b_preset,
+      source_c, source_c_preset,
+      source_d, source_d_preset,
       use_gain_preset, gain,
       use_lc_preset, lc_frequency, lc_on_off,
       use_insert_preset, insert_source, insert_on_off,
@@ -444,7 +453,7 @@ sub conf {
    end;
   end;
   table;
-   Tr; th colspan => 4, "Configuration for module $nr"; end;
+   Tr; th colspan => 4, "Configuration for module $nr - Console $mod->{console}"; end;
    Tr; th colspan => 2; th 'Processing'; th 'Routing'; end; end;
    Tr; th; th 'Source'; th 'Preset'; th 'Preset'; end; end;
    my $u = 0;
@@ -512,26 +521,31 @@ sub conf {
     td; _col 'use_gain_preset', $mod; end;
     td '-';
     td; _col 'gain', $mod; end;
+    td; _col 'm2c_gain', $mod; end;
    end;
    Tr; th 'Low cut';
     td; _col 'use_lc_preset', $mod; end;
     td; _col 'lc_on_off', $mod; end;
     td; _col 'lc_frequency', $mod; end;
+    td; _col 'm2c_lc', $mod; end;
    end;
    Tr; th 'Insert';
     td; _col 'use_insert_preset', $mod; end;
     td; _col 'insert_on_off', $mod; end;
     td; _col 'insert_source', $mod, $src_lst; end;
+    td; _col 'm2c_insert', $mod; end;
    end;
    Tr; th 'Phase';
     td; _col 'use_phase_preset', $mod; end;
     td; _col 'phase_on_off', $mod; end;
     td; _col 'phase', $mod; end;
+    td; _col 'm2c_phase', $mod; end;
    end;
    Tr; th 'Mono';
     td; _col 'use_mono_preset', $mod; end;
     td; _col 'mono_on_off', $mod; end;
     td; _col 'mono', $mod; end;
+   td; _col 'm2c_mono', $mod; end;
    end;
    Tr; th 'EQ';
     td; _col 'use_eq_preset', $mod; end;
@@ -539,6 +553,7 @@ sub conf {
     td;
      a href => "#", onclick => "return conf_eq(\"module\", this, $nr)"; lit 'EQ settings &raquo;'; end;
     end;
+   td; _col 'm2c_eq', $mod; end;
    end;
    Tr; th 'Dynamics';
     td; _col 'use_dyn_preset', $mod; end;
@@ -546,13 +561,13 @@ sub conf {
     td;
      a href => "#", onclick => "return conf_dyn(\"module\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
     end;
+    td; _col 'm2c_dyn', $mod; end;
    end;
-   Tr; td colspan => 3, style => 'background: none', ''; end;
-   Tr; th colspan => 3, 'Module'; end;
-   Tr; th 'Use at'; td rowspan =>2, colspan => 2; _col 'use_mod_preset', $mod; end;
-   Tr; th 'source select';
-   Tr; th 'Level'; td colspan => 2; _col 'mod_level', $mod; end; end;
-   Tr; th 'State'; td colspan => 2; _col 'mod_on_off', $mod; end; end;
+   Tr; th 'Module';
+    td; _col 'use_mod_preset', $mod; end;
+    td; _col 'mod_on_off', $mod; end;
+    td; _col 'mod_level', $mod; end;
+   end;
    Tr; td colspan => 3, style => 'background: none', ''; end;
   end;
   _routingtable($mod, $bus, '');
@@ -671,6 +686,63 @@ sub rpajax {
   $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_preset = ?', \%set, $f->{item}, $type) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} }, $type;
 }
+
+sub m2cajax {
+  my($self, $type) = @_;
+
+  my $f = $self->formValidate(
+    { name => 'field', template => 'asciiprint' },
+    { name => 'item', template => 'int' },
+    { name => "gain", required => 0, enum => [1] },
+  );
+  return 404 if $f->{_err};
+
+  my %set;
+  if ($f->{field} =~ /gain/) {
+    $set{"use_gain_preset = o.use_gain_preset"} = 0;
+    $set{"gain = o.gain"} = 0;
+  }
+  if ($f->{field} =~ /lc/) {
+    $set{"use_lc_preset = o.use_lc_preset"} = 0;
+    $set{"lc_on_off = o.lc_on_off"} = 0;
+    $set{"lc_frequency = o.lc_frequency"} = 0;
+  }
+  if ($f->{field} =~ /insert/) {
+    $set{"use_insert_preset = o.use_insert_preset"} = 0;
+    $set{"insert_on_off = o.insert_on_off"} = 0;
+    $set{"insert_source = o.insert_source"} = 0;
+  }
+  if ($f->{field} =~ /phase/) {
+    $set{"use_phase_preset = o.use_phase_preset"} = 0;
+    $set{"phase_on_off = o.phase_on_off"} = 0;
+    $set{"phase = o.phase"} = 0;
+  }
+  if ($f->{field} =~ /mono/) {
+    $set{"use_mono_preset = o.use_mono_preset"} = 0;
+    $set{"mono_on_off = o.mono_on_off"} = 0;
+    $set{"mono = o.mono"} = 0;
+  }
+  if ($f->{field} =~ /eq/) {
+    $set{"$_ = o.$_"} = 0 for(map +("eq_band_${_}_range", "eq_band_${_}_level", "eq_band_${_}_freq", "eq_band_${_}_bw", "eq_band_${_}_type"), 1..6);
+  }
+  if ($f->{field} =~ /dyn/) {
+   $set{"use_dyn_preset = o.use_dyn_preset"} = 0;
+   $set{"dyn_on_off = o.dyn_on_off"} = 0;
+   $set{"d_exp_threshold = o.d_exp_threshold"} = 0;
+   $set{"agc_amount = o.agc_amount"} = 0;
+   $set{"agc_threshold = o.agc_threshold"} = 0;
+  }
+  if ($f->{field} =~ /routing/) {
+    $set{"$_ = o.$_"} = 0 for(map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
+  }
+
+  $self->dbExec('UPDATE module_config !H
+                 FROM module_config o
+                 WHERE module_config.console = o.console AND o.number = ? AND module_config.number != o.number', \%set, $f->{item});
+
+  a href => '#', class => 'off', "Done";
+}
+
 
 1;
 
