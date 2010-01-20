@@ -10,7 +10,7 @@ YAWF::register(
   qr{module} => \&overview,
   qr{module/([1-9][0-9]*)} => \&conf,
   qr{ajax/module} => \&ajax,
-  qr{ajax/module/([A|B|C|D])} => \&rpajax,
+  qr{ajax/module/([A|B|C|D|E|F|G|H])} => \&rpajax,
   qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
   qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
   qr{ajax/module2console} => \&m2cajax,
@@ -34,16 +34,28 @@ sub overview {
       b.label AS label_b, b.active AS active_b, pb.label AS label_b_preset,
       c.label AS label_c, c.active AS active_c, pc.label AS label_c_preset,
       d.label AS label_d, d.active AS active_d, pd.label AS label_d_preset,
+      e.label AS label_e, e.active AS active_e, pe.label AS label_e_preset,
+      f.label AS label_f, f.active AS active_f, pf.label AS label_f_preset,
+      g.label AS label_g, g.active AS active_g, pg.label AS label_g_preset,
+      h.label AS label_h, h.active AS active_h, ph.label AS label_h_preset,
       m.insert_on_off, m.lc_on_off, m.eq_on_off, m.dyn_on_off, m.console
     FROM module_config m
     LEFT JOIN matrix_sources a ON a.number = m.source_a
     LEFT JOIN matrix_sources b ON b.number = m.source_b
     LEFT JOIN matrix_sources c ON c.number = m.source_c
     LEFT JOIN matrix_sources d ON d.number = m.source_d
+    LEFT JOIN matrix_sources e ON e.number = m.source_e
+    LEFT JOIN matrix_sources f ON f.number = m.source_f
+    LEFT JOIN matrix_sources g ON g.number = m.source_g
+    LEFT JOIN matrix_sources h ON h.number = m.source_h
     LEFT JOIN src_preset pa ON pa.number = m.source_a_preset
     LEFT JOIN src_preset pb ON pb.number = m.source_b_preset
     LEFT JOIN src_preset pc ON pc.number = m.source_c_preset
     LEFT JOIN src_preset pd ON pd.number = m.source_d_preset
+    LEFT JOIN src_preset pe ON pe.number = m.source_e_preset
+    LEFT JOIN src_preset pf ON pf.number = m.source_f_preset
+    LEFT JOIN src_preset pg ON pg.number = m.source_g_preset
+    LEFT JOIN src_preset ph ON ph.number = m.source_h_preset
     WHERE m.number >= ? AND m.number <= ?
     ORDER BY m.number|,
     $p*32-31, $p*32
@@ -82,7 +94,7 @@ sub overview {
       th 'Console';
       td sprintf '%d', $mod->[$_]{console} for (@m);
      end;
-     for my $src ('a', 'b', 'c', 'd') {
+     for my $src ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
        Tr $p > $dspcount ? (class => 'inactive') : ();
         th "Preset \u$src";
         for (@m) {
@@ -145,7 +157,7 @@ sub _col {
   my $url = $lst ? ("module/$lst") : ("module");
   my $number = $lst ? ($d->{mod_number}) : ($d->{number});
 
-  if($n eq 'source_a' || $n eq 'source_b' || $n eq 'source_c' || $n eq 'source_d' || $n eq 'insert_source') {
+  if(($n =~ /^source_[a|b|c|d|e|f|g|h]$/) or ($n eq 'insert_source')) {
     my $s;
     for my $l (@$lst) {
       if ($l->{number} == $v)
@@ -156,7 +168,7 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
       !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
-  if ($n =~ /source_[a|b|c|d]_preset/) {
+  if ($n =~ /source_[a|b|c|d|e|f|g|h]_preset/) {
     my $s;
     for my $l (@$lst) {
       if ($l->{number} == $v)
@@ -320,7 +332,7 @@ sub _routingtable {
   end;
   Tr;
    th '';
-   if ($type =~ /[A|B|C|D]/) {
+   if ($type =~ /[A|B|C|D|E|F|G|H]/) {
      th 'Override';
    } else {
      th 'Use at';
@@ -329,7 +341,7 @@ sub _routingtable {
   end;
   Tr;
    th '';
-   if ($type =~ /[A|B|C|D]/) {
+   if ($type =~ /[A|B|C|D|E|F|G|H]/) {
      th 'module';
    } else {
      th 'source select';
@@ -374,6 +386,10 @@ sub conf {
       source_b, source_b_preset,
       source_c, source_c_preset,
       source_d, source_d_preset,
+      source_e, source_e_preset,
+      source_f, source_f_preset,
+      source_g, source_g_preset,
+      source_h, source_h_preset,
       use_gain_preset, gain,
       use_lc_preset, lc_frequency, lc_on_off,
       use_insert_preset, insert_source, insert_on_off,
@@ -394,25 +410,13 @@ sub conf {
     $bsel, $nr);
   return 404 if !$mod->{number};
 
-  my $rp_a = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
+  my %rp;
+  for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
+    $rp{$s} = $self->dbRow("SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
                             JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_preset = 'A'|, $rp_bsel, $nr);
-  return 404 if !$rp_a->{mod_number};
-
-  my $rp_b = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
-                            JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_preset = 'B'|, $rp_bsel, $nr);
-  return 404 if !$rp_b->{mod_number};
-
-  my $rp_c = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
-                            JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_preset = 'C'|, $rp_bsel, $nr);
-  return 404 if !$rp_c->{mod_number};
-
-  my $rp_d = $self->dbRow(q|SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
-                            JOIN module_config m ON m.number = mod_number
-                            WHERE mod_number = ? AND mod_preset = 'D'|, $rp_bsel, $nr);
-  return 404 if !$rp_d->{mod_number};
+                            WHERE mod_number = ? AND mod_preset = '\u$s'", $rp_bsel, $nr);
+    return 404 if !$rp{$s}->{mod_number};
+  }
 
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
@@ -456,54 +460,20 @@ sub conf {
    Tr; th colspan => 4, "Configuration for module $nr - Console $mod->{console}"; end;
    Tr; th colspan => 2; th 'Processing'; th 'Routing'; end; end;
    Tr; th; th 'Source'; th 'Preset'; th 'Preset'; end; end;
-   my $u = 0;
-   for my $b (@$bus) {
-    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
-    $u += $rp_a->{$busses[$b->{number}-1].'_use_preset'};
+   for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
+     my $u = 0;
+     for my $b (@$bus) {
+      next if !$mod->{$busses[$b->{number}-1].'_assignment'};
+      $u += $rp{$s}->{$busses[$b->{number}-1].'_use_preset'};
+     }
+     Tr; th "Preset \u$s"; td; _col "source_$s", $mod, $src_lst; end; td; _col "source_${s}_preset", $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
+     Tr id => "routing_$s", class => 'hidden';
+      td '';
+      td colspan => 3, style => 'padding: 10px';
+       _routingtable($rp{$s}, $bus, "\u$s");
+      end;
+     end;
    }
-   Tr; th 'Preset A'; td; _col 'source_a', $mod, $src_lst; end; td; _col 'source_a_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_a", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
-   Tr id => 'routing_a', class => 'hidden';
-    td '';
-    td colspan => 3, style => 'padding: 10px';
-     _routingtable($rp_a, $bus, 'A');
-    end;
-   end;
-   $u = 0;
-   for my $b (@$bus) {
-    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
-    $u += $rp_b->{$busses[$b->{number}-1].'_use_preset'};
-   }
-   Tr; th 'Preset B'; td; _col 'source_b', $mod, $src_lst; end; td; _col 'source_b_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_b", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
-   Tr id => 'routing_b', class => 'hidden';
-    td '';
-    td colspan => 3, style => 'padding: 10px';
-      _routingtable($rp_b, $bus, 'B');
-    end;
-   end;
-   $u = 0;
-   for my $b (@$bus) {
-    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
-    $u += $rp_c->{$busses[$b->{number}-1].'_use_preset'};
-   }
-   Tr; th 'Preset C'; td; _col 'source_c', $mod, $src_lst; end; td; _col 'source_c_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_c", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
-   Tr id => 'routing_c', class => 'hidden';
-    td '';
-    td colspan => 3, style => 'padding: 10px';
-      _routingtable($rp_c, $bus, 'C');
-    end;
-   end;
-   $u = 0;
-   for my $b (@$bus) {
-    next if !$mod->{$busses[$b->{number}-1].'_assignment'};
-    $u += $rp_d->{$busses[$b->{number}-1].'_use_preset'};
-   }
-   Tr; th 'Preset D'; td; _col 'source_d', $mod, $src_lst; end; td; _col 'source_d_preset', $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_d", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
-   Tr id => 'routing_d', class => 'hidden';
-    td '';
-    td colspan => 3, style => 'padding: 10px';
-      _routingtable($rp_d, $bus, 'D');
-    end;
-   end;
    Tr; td colspan => 4, style => 'background: none', ''; end;
    Tr; th colspan => 4, 'Processing'; end;
    Tr;
@@ -588,10 +558,18 @@ sub ajax {
     { name => 'source_b', required => 0, template => 'int' },
     { name => 'source_c', required => 0, template => 'int' },
     { name => 'source_d', required => 0, template => 'int' },
+    { name => 'source_e', required => 0, template => 'int' },
+    { name => 'source_f', required => 0, template => 'int' },
+    { name => 'source_g', required => 0, template => 'int' },
+    { name => 'source_h', required => 0, template => 'int' },
     { name => 'source_a_preset', required => 0, template => 'int' },
     { name => 'source_b_preset', required => 0, template => 'int' },
     { name => 'source_c_preset', required => 0, template => 'int' },
     { name => 'source_d_preset', required => 0, template => 'int' },
+    { name => 'source_e_preset', required => 0, template => 'int' },
+    { name => 'source_f_preset', required => 0, template => 'int' },
+    { name => 'source_g_preset', required => 0, template => 'int' },
+    { name => 'source_h_preset', required => 0, template => 'int' },
     { name => 'gain', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => 'lc_frequency', required => 0, template => 'int' },
     { name => 'insert_source', required => 0, template => 'int' },
@@ -613,12 +591,13 @@ sub ajax {
   defined $f->{$_} && ($f->{$_} *= 511)
     for (map "${_}_balance", @busses);
   defined $f->{$_} and ((($_ =~ /source_[a|b|c|d]_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
-    for(@booleans, qw|source_a source_b source_c source_d source_a_preset source_b_preset source_c_preset source_d_preset
+    for(@booleans, qw|source_a source_b source_c source_d source_e source_f source_g source_h
+                      source_a_preset source_b_preset source_c_preset source_d_preset source_e_preset source_f_preset source_g_preset source_h_preset
                       insert_source mod_level lc_frequency gain phase mono|, map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
-    $f->{field} =~ /source_[a|b|c|d]_preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : (
+    $f->{field} =~ /source_[a|b|c|d|e|f|g|h]_preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : (
       $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ()
     );
 }
