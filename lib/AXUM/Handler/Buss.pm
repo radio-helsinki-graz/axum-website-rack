@@ -21,6 +21,7 @@ sub _col {
 
   # boolean values
   my %booleans = (
+    mono         => [0, 'yes', 'no'  ],
     global_reset => [0, 'yes', 'no'  ],
     interlock    => [0, 'yes', 'no'  ],
     exclusive    => [0, 'yes', 'no'  ],
@@ -93,9 +94,10 @@ sub buss {
     end;
   end;
   table;
-   Tr; th colspan => 11, 'Buss configuration'; end;
+   Tr; th colspan => 12, 'Buss configuration'; end;
    Tr;
     th colspan => 2, '';
+    th '2 Mono';
     th colspan => 3, 'Master Pre/Post';
     th colspan => 2, 'Master';
     th colspan => 2, '';
@@ -105,6 +107,7 @@ sub buss {
    Tr;
     th 'Buss';
     th 'Label';
+    th 'Busses';
     th 'Module on';
     th 'Module level';
     th 'Module balance';
@@ -117,7 +120,7 @@ sub buss {
    for my $b (@$busses) {
      Tr;
       th sprintf '%d/%d', $b->{number}*2-1, $b->{number}*2;
-      for(qw|label pre_on pre_level pre_balance level on_off interlock exclusive global_reset console|) {
+      for(qw|label mono pre_on pre_level pre_balance level on_off interlock exclusive global_reset console|) {
         td; _col $_, $b; end;
       }
      end;
@@ -134,6 +137,7 @@ sub ajax {
     { name => 'field', template => 'asciiprint' }, # should have an enum property
     { name => 'item', template => 'int' },
     { name => 'console',      required => 0, enum => [1,2,3,4] },
+    { name => 'mono',         required => 0, enum => [0,1] },
     { name => 'global_reset', required => 0, enum => [0,1] },
     { name => 'interlock',    required => 0, enum => [0,1] },
     { name => 'exclusive',    required => 0, enum => [0,1] },
