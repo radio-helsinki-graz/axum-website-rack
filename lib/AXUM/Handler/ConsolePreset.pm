@@ -102,7 +102,7 @@ sub consolepreset {
   div id => 'mod_preset_list', class => 'hidden';
    Select;
     option value => 'NULL', 'None';
-    option value => $_, $_ for ('A'..'D');
+    option value => $_, $_ for ('A'..'H');
    end;
   end;
   div id => 'buss_preset_list', class => 'hidden';
@@ -158,7 +158,7 @@ sub ajax {
     { name => 'item', template => 'int' },
     { name => 'label', required => 0, template => 'asciiprint' },
     { name => 'pos', required => 0, template => 'int' },
-    { name => 'mod_preset', required => 0, regex => [ qr/[NULL|A|B|C|D]/, 0 ] },
+    { name => 'mod_preset', required => 0, regex => [ qr/[NULL|A|B|C|D|E|F|G|H]/, 0 ] },
     { name => 'buss_preset', required => 0, regex => [ qr/[NULL|\d{1,4}]/, 0] },
     (map +{ name => "console$_", required => 0, enum => [0,1] }, 1..4),
   );
