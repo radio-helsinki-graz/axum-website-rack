@@ -13,6 +13,8 @@ YAWF::register(
 );
 
 
+my @routing_types = ('stereo', 'left', 'right');
+
 sub _channels {
   return shift->dbAll(q|SELECT s.addr, a.active, s.slot_nr, g.channel, a.name
     FROM slot_config s
@@ -59,7 +61,8 @@ sub _col {
       !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
   if($n eq 'routing') {
-    a href => '#', onclick => sprintf('return conf_set("dest", %d, "%s", %d, this)', $d->{number}, $n, $v), ($v == 0) ? (class => 'off', 'Stereo') : ('');
+    a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "routing_list")', $d->{number}, $n, $v),
+      $v == 0 ? (class => 'off') : (), $routing_types[$v];
   }
 }
 
@@ -108,7 +111,7 @@ sub dest {
   my $pos_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY pos');
   my $src_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY number');
   my $dest = $self->dbAll(q|SELECT pos, number, label, output1_addr,
-    output1_sub_ch, output2_addr, output2_sub_ch, level, source, mix_minus_source
+    output1_sub_ch, output2_addr, output2_sub_ch, level, source, routing, mix_minus_source
     FROM dest_config ORDER BY pos|);
 
   $self->htmlHeader(page => 'dest', title => 'Destination configuration');
@@ -129,6 +132,12 @@ sub dest {
       $max_pos = $_->{pos} if ($_->{pos} > $max_pos);
     }
     option value => $max_pos+1, "last";
+   end;
+  end;
+  div id => 'routing_list', class => 'hidden';
+   Select;
+    option value => $_, $routing_types[$_]
+      for (0..2);
    end;
   end;
 
@@ -245,7 +254,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label level source mix_minus_source|);
+      for(qw|label level source routing mix_minus_source|);
     defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = ?, '.$_.'_sub_ch = ?'} = [ $1, $2 ])
       for('output1', 'output2');
 
