@@ -57,6 +57,8 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")',
         $d->{number}, $n, $v, $n eq 'source' ? 'source_items' : 'mix_minus_items'),
       !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
+  if($n eq 'routing') {
+    a href => '#', onclick => sprintf('return conf_set("dest", %d, "%s", %d, this)', $d->{number}, $n, $v), ($v == 0) ? (class => 'off', 'Stereo') : ('');
   }
 }
 
@@ -133,14 +135,20 @@ sub dest {
   $self->htmlSourceList($pos_lst, 'mix_minus_items', 1);
 
   table;
-   Tr; th colspan => 8, 'Destination configuration'; end;
+   Tr; th colspan => 9, 'Destination configuration'; end;
+   Tr;
+    th colspan => 5, '';
+    th colspan => 2, 'Default signal';
+    th colspan => 2, '';
+   end;
    Tr;
     th 'Nr';
     th 'Label';
     th 'Output 1 (left)';
     th 'Output 2 (right)';
     th 'Level';
-    th 'Default signal';
+    th 'From';
+    th 'Routing';
     th 'N-1 from';
     th '';
    end;
@@ -160,6 +168,7 @@ sub dest {
         }
       end;
       td; _col 'source', $d, $src_lst; end;
+      td; _col 'routing', $d; end;
       td; _col 'mix_minus_source', $d, $src_lst; end;
       td;
        a href => '/dest?del='.$d->{number}, title => 'Delete';
@@ -214,6 +223,7 @@ sub ajax {
     { name => 'output1', required => 0, regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
     { name => 'output2', required => 0, regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
     { name => 'source', required => 0, template => 'int' },
+    { name => 'routing', required => 0, enum => [0,1,2] },
     { name => 'mix_minus_source', required => 0, template => 'int' },
     { name => 'pos', required => 0, template => 'int' },
   );
