@@ -57,6 +57,7 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")',
         $d->{number}, $n, $v, $n eq 'source' ? 'source_items' : 'mix_minus_items'),
       !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
+  }
   if($n eq 'routing') {
     a href => '#', onclick => sprintf('return conf_set("dest", %d, "%s", %d, this)', $d->{number}, $n, $v), ($v == 0) ? (class => 'off', 'Stereo') : ('');
   }
