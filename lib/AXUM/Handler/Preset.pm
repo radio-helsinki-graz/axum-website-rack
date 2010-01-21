@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use YAWF ':html';
 
+
 YAWF::register(
   qr{preset}        => \&preset_overview,
   qr{preset/([1-9][0-9]*)} => \&preset,
@@ -55,6 +56,10 @@ sub _col {
   if($n eq 'mono') {
     a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "mono_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $mono_types[$v];
+  }
+  if ($n =~ /^copy_preset/) {
+    lit '&raquo;';
+    a href => '#', onclick => sprintf('return conf_addpreset(this, "Copy", %d)', $d->{number}), class => 'off', 'Copy to new preset';
   }
 }
 
@@ -155,6 +160,7 @@ sub _create_preset {
 
   my $f = $self->formValidate(
     { name => 'label', minlength => 1, maxlength => 32 },
+    { name => 'preset', required => 0, template => 'int' },
   );
   die "Invalid input" if $f->{_err};
 
@@ -168,6 +174,42 @@ sub _create_preset {
   $self->dbExec(q|
     INSERT INTO src_preset (number, label) VALUES (!l)|,
     [ $num, $f->{label}]);
+
+  if ($f->{preset} > 0)
+  {
+    my %set = map +("$_ = o.$_" => 0),
+      "use_gain_preset",
+      "gain",
+      "use_lc_preset",
+      "lc_on_off",
+      "lc_frequency",
+      "use_insert_preset",
+      "insert_on_off",
+      "use_phase_preset",
+      "phase_on_off",
+      "phase",
+      "use_mono_preset",
+      "mono_on_off",
+      "mono",
+      "use_eq_preset",
+      "eq_on_off",
+      "use_dyn_preset",
+      "dyn_on_off",
+      "d_exp_threshold",
+      "agc_amount",
+      "agc_threshold",
+      "use_mod_preset",
+      "mod_pan",
+      "mod_on_off",
+      "mod_lvl";
+
+    $set{"$_ = o.$_"} = 0 for(map +("eq_band_${_}_range", "eq_band_${_}_level", "eq_band_${_}_freq", "eq_band_${_}_bw", "eq_band_${_}_slope", "eq_band_${_}_type"), 1..6);
+
+    $self->dbExec("UPDATE src_preset !H
+                   FROM src_preset o
+                   WHERE src_preset.number = ? AND o.number = ?", \%set, $num, $f->{preset});
+  }
+
   $self->dbExec("SELECT src_preset_renumber()");
   $self->resRedirect('/preset', 'post');
 }
@@ -202,7 +244,7 @@ sub preset_overview {
   end;
 
   table;
-   Tr; th colspan => 34, 'Processing preset'; end;
+   Tr; th colspan => 4, 'Processing preset'; end;
    Tr;
     th 'Nr';
     th 'Label';
@@ -222,11 +264,12 @@ sub preset_overview {
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
+      td; _col 'copy_preset', $p; end;
      end;
    }
   end;
   br; br;
-  a href => '#', onclick => 'return conf_addpreset(this)', 'Create new preset';
+  a href => '#', onclick => 'return conf_addpreset(this, "Create")', 'Create new preset';
 
   $self->htmlFooter;
 }

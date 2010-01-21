@@ -190,14 +190,17 @@ function conf_addsrcdest(obj, list, type) {
 }
 
 /* this is an actual form, doesn't use AJAX */
-function conf_addpreset(obj) {
+function conf_addpreset(obj, button_text, preset_number) {
   var d = create_input(obj, null, -30);
   if(!d) return false;
+
+  if(!preset_number) preset_number = 0;
 
   d.style.textAlign = 'right';
   d.innerHTML =
     '<label for="label">Label:</label><input type="text" class="text" name="label" id="label" size="10" value="Preset"/>'
-   +' <input type="submit" value="Create" class="button" />';
+   +'<input name="preset" type="hidden" value="'+preset_number+'"/>'
+   +'<input type="submit" value="'+button_text+'" class="button" />';
   d = d.getElementsByTagName('select');
   return false;
 }
