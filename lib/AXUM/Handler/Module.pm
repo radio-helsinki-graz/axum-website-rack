@@ -16,8 +16,8 @@ YAWF::register(
   qr{ajax/module2console} => \&m2cajax,
 );
 
-my @phase_types = ('Normal', 'Left', 'Right', 'Both');
-my @mono_types = ('Stereo', 'Left', 'Right', 'Mono');
+my @phase_types = ('normal', 'left', 'right', 'both');
+my @mono_types = ('stereo', 'left', 'right', 'mono');
 my @busses = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
 my @balance = ('left', 'center', 'right');
 
