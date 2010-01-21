@@ -17,8 +17,15 @@ sub _col {
   my $v = $d->{$n};
 
   if ($n =~ /^ext/) {
+    my $s;
+    for my $l (@$lst) {
+      if ($l->{number} == $v)
+      {
+        $s = $l;
+      }
+    }
     a href => '#', onclick => sprintf('return conf_select("externsrc", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
-      !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
+      !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
   if ($n =~ /^safe/) {
     a href => '#', onclick => sprintf('return conf_set("externsrc", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),

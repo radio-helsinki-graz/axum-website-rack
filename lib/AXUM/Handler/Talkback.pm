@@ -15,8 +15,15 @@ YAWF::register(
 sub _col {
   my($d, $lst) = @_;
   my $v = $d->{source};
+  my $s;
+  for my $l (@$lst) {
+    if ($l->{number} == $v)
+    {
+      $s = $l;
+    }
+  }
   a href => '#', onclick => sprintf('return conf_select("talkback", %d, "source", %d, this, "matrix_sources")', $d->{number}, $v),
-    !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
+    !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
 }
 
 

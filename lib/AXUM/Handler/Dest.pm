@@ -47,9 +47,16 @@ sub _col {
       sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel});
   }
   if($n eq 'source' || $n eq 'mix_minus_source') {
+    my $s;
+    for my $l (@$lst) {
+      if ($l->{number} == $v)
+      {
+        $s = $l;
+      }
+    }
     a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")',
         $d->{number}, $n, $v, $n eq 'source' ? 'source_items' : 'mix_minus_items'),
-      !$v || !$lst->[$v]{active} ? (class => 'off') : (), $v ? $lst->[$v]{label} : 'none';
+      !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
 }
 
