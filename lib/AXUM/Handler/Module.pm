@@ -503,7 +503,6 @@ sub conf {
     td; _col 'use_insert_preset', $mod; end;
     td; _col 'insert_on_off', $mod; end;
     td; _col 'insert_source', $mod, $src_lst; end;
-    td; _col 'm2c_insert', $mod; end;
    end;
    Tr; th 'Phase';
     td; _col 'use_phase_preset', $mod; end;
@@ -685,11 +684,6 @@ sub m2cajax {
     $set{"use_lc_preset = o.use_lc_preset"} = 0;
     $set{"lc_on_off = o.lc_on_off"} = 0;
     $set{"lc_frequency = o.lc_frequency"} = 0;
-  }
-  if ($f->{field} =~ /insert/) {
-    $set{"use_insert_preset = o.use_insert_preset"} = 0;
-    $set{"insert_on_off = o.insert_on_off"} = 0;
-    $set{"insert_source = o.insert_source"} = 0;
   }
   if ($f->{field} =~ /phase/) {
     $set{"use_phase_preset = o.use_phase_preset"} = 0;
