@@ -395,7 +395,7 @@ sub ajax {
   } elsif ($f->{field} eq 'label') {
     $set{"label = ?"} = $f->{'label'};
     $self->dbExec('UPDATE buss_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
-    _col $fieldname, { number => $f->{item}, $fieldname => $f->{$f->{field}}, buss => $buss };
+    _col_overview $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, buss => $buss };
   } else {
     $self->dbExec('UPDATE buss_preset_rows !H WHERE number = ? AND buss = ?', \%set, $f->{item}, $buss) if keys %set;
     _col $fieldname, { number => $f->{item}, $fieldname => $f->{$f->{field}}, buss => $buss };
