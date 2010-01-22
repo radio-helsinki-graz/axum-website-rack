@@ -171,7 +171,7 @@ function conf_select(page, item, field, value, obj, list, listname, buttonname) 
 
 
 /* this is an actual form, doesn't use AJAX */
-function conf_addsrcdest(obj, list, type) {
+function conf_addsrc(obj, list, type) {
   var d = create_input(obj, null, -70);
   if(!d) return false;
 
@@ -513,3 +513,49 @@ function toggle_visibility(id, obj)
   }
   return false;
 }
+
+function conf_outputlist(item, field, selected_output, obj) {
+  var selected_output, l, i;
+  var d = create_input(obj, function(f) {
+    l = document.getElementById('out_ch_main').getElementsByTagName('select')[0];
+    selected_output = l.options[l.selectedIndex].value;
+    while(obj.nodeName.toLowerCase() != 'td')
+      obj = obj.parentNode;
+    ajax('/ajax/dest?item='+item+';field='+field+';'+field+'='+encodeURIComponent(selected_output), function(h) {
+      obj.innerHTML = h.responseText;
+      remove_input(input_obj);
+    });
+  });
+  if(!d) return false;
+  d.innerHTML = 'loading slot/channel list...';
+  ajax('/ajax/outputlist?current='+selected_output, function(h) {
+    d.innerHTML = h.responseText + '<input type="submit" value="Save" class="button" />';
+    l = d.getElementsByTagName('div');
+    l = document.getElementById('out_ch_main').getElementsByTagName('select')[0];
+    for(i=0; i<l.options.length; i++)
+      l.options[i].selected = l.options[i].value == selected_output;
+  });
+  return false;
+}
+
+function conf_adddest(obj, list, type) {
+  var d = create_input(obj, null, -70);
+  if(!d) return false;
+  d.innerHTML = 'loading slot/channel list...';
+  ajax('/ajax/outputlist?current=0_0', function(h) {
+
+  var uctype = type.substr(0,1).toUpperCase() + type.substr(1,type.length);
+  d.style.textAlign = 'right';
+  d.innerHTML =
+    '<label for="'+type+'1" >'+uctype+' 1 (left):</label>'+h.responseText+'<br />'
+   +'<label for="'+type+'2">'+uctype+' 2 (right):</label>'+h.responseText+'<br />'
+   +'<label for="label">Label:</label><input type="text" class="text" name="label" id="label" size="10" />'
+   +' <input type="submit" value="Create" class="button" />';
+  d = d.getElementsByTagName('select');
+  d[0].name = d[0].id = type+'1';
+  d[1].name = d[1].id = type+'2';
+  d[0].style.width = d[1].style.width = '350px';
+  });
+  return false;
+}
+

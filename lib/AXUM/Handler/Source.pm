@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use YAWF ':html';
 
+
 YAWF::register(
   qr{source}            	  => \&source,
   qr{source/generate}   	  => \&generate,
@@ -221,7 +222,7 @@ sub source {
    }
   end;
   br; br;
-  a href => '#', onclick => 'return conf_addsrcdest(this, "input_channels", "input")', 'Create new source';
+  a href => '#', onclick => 'return conf_addsrc(this, "input_channels", "input")', 'Create new source';
 
   $self->htmlFooter;
 }

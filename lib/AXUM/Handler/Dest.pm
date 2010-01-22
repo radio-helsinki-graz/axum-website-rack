@@ -10,6 +10,7 @@ YAWF::register(
   qr{dest} => \&dest,
   qr{dest/generate}   => \&generate,
   qr{ajax/dest} => \&ajax,
+  qr{ajax/outputlist} => \&outputlist,
 );
 
 
@@ -24,7 +25,6 @@ sub _channels {
     ORDER BY s.slot_nr, g.channel
   |);
 }
-
 
 sub _col {
   my($n, $d, $lst) = @_;
@@ -42,11 +42,11 @@ sub _col {
     $jsval =~ s/"/\\"/g;
     a href => '#', onclick => sprintf('return conf_text("dest", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
-  if($n =~ /output([12])/) {
+  if ($n =~ /^output([12])/) {
     $v = (grep $_->{addr} == $d->{'output'.$1.'_addr'} && $_->{channel} == $d->{'output'.$1.'_sub_ch'}, @$lst)[0];
     a href => '#', $v->{active} ? () : (class => 'off'), onclick => sprintf(
-      'return conf_select("dest", %d, "%s", "%s", this, "output_channels")', $d->{number}, $n, "$v->{addr}_$v->{channel}"),
-      sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel});
+      'return conf_outputlist(%d, "%s", "%s", this)', $d->{number}, $n, ($d->{'output'.$1.'_addr'}?("$v->{addr}_$v->{channel}"):('0_0'))),
+      ($d->{'output'.$1.'_addr'} ? (sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel})) : ('none'));
   }
   if($n eq 'source' || $n eq 'mix_minus_source') {
     my $s;
@@ -190,7 +190,7 @@ sub dest {
 
   end;
   br; br;
-  a href => '#', onclick => 'return conf_addsrcdest(this, "output_channels", "output")', 'Create new destination';
+  a href => '#', onclick => 'return conf_adddest(this, "output_channels", "output")', 'Create new destination';
   $self->htmlFooter;
 }
 
@@ -255,7 +255,7 @@ sub ajax {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
       for(qw|label level source routing mix_minus_source|);
-    defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = ?, '.$_.'_sub_ch = ?'} = [ $1, $2 ])
+    defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = '.(($1 == 0)?('NULL'):('?')).', '.$_.'_sub_ch = ?'} = [ ($1 == 0)?():($1), $2 ])
       for('output1', 'output2');
 
     $self->dbExec('UPDATE dest_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
@@ -268,6 +268,50 @@ sub ajax {
           $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY number') : ();
     }
   }
+}
+
+sub outputlist {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'current', required => 0, regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
+  );
+  return 404 if $f->{_err};
+
+  my $addr = 0;
+  my $sub_ch = 0;
+  if ($f->{current} =~ /([0-9]+)_([0-9]+)/) {
+    $addr = $1;
+    $sub_ch = $2;
+  }
+
+  my $ch = $self->dbAll(q|(SELECT s.slot_nr, g.channel, s.addr, a.active, a.name
+                           FROM slot_config s
+                           JOIN addresses a ON a.addr = s.addr
+                           JOIN generate_series(1,32) AS g(channel) ON s.output_ch_cnt >= g.channel
+                           WHERE output_ch_cnt > 0
+                           ORDER BY s.slot_nr, g.channel)
+                           EXCEPT
+                           ((SELECT s.slot_nr, d.output1_sub_ch, s.addr, a.active, a.name
+                             FROM slot_config s
+                             JOIN addresses a ON a.addr = s.addr
+                             JOIN dest_config d ON d.output1_addr = s.addr
+                             WHERE d.output1_addr <> ? OR d.output1_sub_ch <> ?)
+                           UNION
+                            (SELECT s.slot_nr, d.output2_sub_ch, s.addr, a.active, a.name
+                             FROM slot_config s
+                             JOIN addresses a ON a.addr = s.addr
+                             JOIN dest_config d ON d.output2_addr = s.addr
+                             WHERE d.output2_addr <> ? OR d.output2_sub_ch <> ?))|, $addr, $sub_ch, $addr, $sub_ch);
+
+  div id => 'out_ch_main';
+   Select;
+    option value => '0_0', 'None';
+    option value => "$_->{addr}_$_->{channel}", $_->{active} ? () : (class => 'off'),
+        sprintf "Slot %d channel %d (%s)", $_->{slot_nr}, $_->{channel}, $_->{name}
+      for @$ch;
+   end;
+  end;
 }
 
 
