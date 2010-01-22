@@ -63,29 +63,34 @@ sub buss {
   my $self = shift;
 
   my $busses = $self->dbAll(q|
-    SELECT  b.number, b.label, b.mono, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console,
-    COUNT(*),
-    SUM(CASE WHEN m.buss_1_2_pre_post = true AND b.number = 1 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_3_4_pre_post = true AND b.number = 2 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_5_6_pre_post = true AND b.number = 3 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_7_8_pre_post = true AND b.number = 4 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_9_10_pre_post = true AND b.number = 5 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_11_12_pre_post = true AND b.number = 6 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_13_14_pre_post = true AND b.number = 7 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_15_16_pre_post = true AND b.number = 8 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_17_18_pre_post = true AND b.number = 9 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_19_20_pre_post = true AND b.number = 10 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_21_22_pre_post = true AND b.number = 11 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_23_24_pre_post = true AND b.number = 12 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_25_26_pre_post = true AND b.number = 13 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_27_28_pre_post = true AND b.number = 14 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_29_30_pre_post = true AND b.number = 15 THEN 1 ELSE 0 END) +
-    SUM(CASE WHEN m.buss_31_32_pre_post = true AND b.number = 16 THEN 1 ELSE 0 END) AS pre_level
-    FROM module_config m
-    JOIN buss_config b ON b.console = m.console
-    WHERE m.number <= dsp_count()*32
-    GROUP BY b.number, b.label, b.mono, b.pre_on, pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console
-    ORDER BY b.number ASC|);
+    (SELECT  b.number, b.label, b.mono, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console,
+        COUNT(*),
+        SUM(CASE WHEN m.buss_1_2_pre_post = true AND b.number = 1 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_3_4_pre_post = true AND b.number = 2 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_5_6_pre_post = true AND b.number = 3 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_7_8_pre_post = true AND b.number = 4 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_9_10_pre_post = true AND b.number = 5 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_11_12_pre_post = true AND b.number = 6 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_13_14_pre_post = true AND b.number = 7 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_15_16_pre_post = true AND b.number = 8 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_17_18_pre_post = true AND b.number = 9 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_19_20_pre_post = true AND b.number = 10 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_21_22_pre_post = true AND b.number = 11 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_23_24_pre_post = true AND b.number = 12 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_25_26_pre_post = true AND b.number = 13 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_27_28_pre_post = true AND b.number = 14 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_29_30_pre_post = true AND b.number = 15 THEN 1 ELSE 0 END) +
+        SUM(CASE WHEN m.buss_31_32_pre_post = true AND b.number = 16 THEN 1 ELSE 0 END) AS pre_level
+      FROM module_config m
+      JOIN buss_config b ON b.console = m.console
+      WHERE m.number <= dsp_count()*32
+      GROUP BY b.number, b.label, b.mono, b.pre_on, pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console
+      ORDER BY b.number ASC)
+    UNION
+      SELECT  b.number, b.label, b.mono, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console, 0 AS count, 0 AS pre_level 
+        FROM buss_config b
+        WHERE (SELECT COUNT(*) FROM module_config m WHERE m.console = b.console) = 0
+        ORDER BY b.number ASC|);
 
   $self->htmlHeader(title => 'Buss configuration', page => 'buss');
   div id => 'console_list', class => 'hidden';
