@@ -63,7 +63,7 @@ sub buss {
   my $self = shift;
 
   my $busses = $self->dbAll(q|
-    SELECT  b.number, b.label, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console,
+    SELECT  b.number, b.label, b.mono, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console,
     COUNT(*),
     SUM(CASE WHEN m.buss_1_2_pre_post = true AND b.number = 1 THEN 1 ELSE 0 END) +
     SUM(CASE WHEN m.buss_3_4_pre_post = true AND b.number = 2 THEN 1 ELSE 0 END) +
@@ -84,7 +84,7 @@ sub buss {
     FROM module_config m
     JOIN buss_config b ON b.console = m.console
     WHERE m.number <= dsp_count()*32
-    GROUP BY b.number, b.label, b.pre_on, pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console
+    GROUP BY b.number, b.label, b.mono, b.pre_on, pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console
     ORDER BY b.number ASC|);
 
   $self->htmlHeader(title => 'Buss configuration', page => 'buss');
@@ -159,7 +159,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|console global_reset interlock exclusive on_off pre_on pre_balance level label|);
+      for(qw|console mono global_reset interlock exclusive on_off pre_on pre_balance level label|);
 
     $self->dbExec('UPDATE buss_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
     _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
