@@ -696,6 +696,8 @@ sub m2cajax {
     $set{"mono = o.mono"} = 0;
   }
   if ($f->{field} =~ /eq/) {
+    $set{"use_eq_preset = o.use_eq_preset"} = 0;
+    $set{"eq_on_off = o.eq_on_off"} = 0;
     $set{"$_ = o.$_"} = 0 for(map +("eq_band_${_}_range", "eq_band_${_}_level", "eq_band_${_}_freq", "eq_band_${_}_bw", "eq_band_${_}_type"), 1..6);
   }
   if ($f->{field} =~ /dyn/) {
