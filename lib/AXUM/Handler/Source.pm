@@ -48,11 +48,11 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_set("source", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       !$v ? (class => 'off', 'n') : 'y';
   }
-  if($n =~ /input([12])/) {
+  if($n =~ /^input([12])/) {
     $v = (grep $_->{addr} == $d->{'input'.$1.'_addr'} && $_->{channel} == $d->{'input'.$1.'_sub_ch'}, @{$_[2]})[0];
     a href => '#', $v->{active} ? () : (class => 'off'), onclick => sprintf(
-      'return conf_select("source", %d, "%s", "%s", this, "input_channels")', $d->{number}, $n, "$v->{addr}_$v->{channel}"),
-      sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel});
+      'return conf_select("source", %d, "%s", "%s", this, "input_channels")', $d->{number}, $n, ($d->{'input'.$1.'_addr'}?("$v->{addr}_$v->{channel}"):('0_0'))),
+      ($d->{'input'.$1.'_addr'}?(sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel})):('none'));
   }
   if ($n eq 'default_src_preset') {
     my $s;
@@ -132,6 +132,7 @@ sub source {
   # create list of available channels for javascript
   div id => 'input_channels', class => 'hidden';
    Select;
+    option value => "0_0", 'None';
     option value => "$_->{addr}_$_->{channel}", $_->{active} ? () : (class => 'off'),
         sprintf "Slot %d channel %d (%s)", $_->{slot_nr}, $_->{channel}, $_->{name}
       for @$chan;
@@ -290,7 +291,7 @@ sub ajax {
     my %set;
     defined $f->{$_} and ((($_ =~ /default_src_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
       for(qw|label input_phantom input_pad input_gain default_src_preset|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
-    defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = ?, '.$_.'_sub_ch = ?'} = [ $1, $2 ])
+    defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = '.(($1 == 0)?('NULL'):('?')).', '.$_.'_sub_ch = ?'} = [ ($1 == 0)?():($1), $2 ])
       for('input1', 'input2');
 
     $self->dbExec('UPDATE src_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
