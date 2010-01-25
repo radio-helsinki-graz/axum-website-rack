@@ -87,10 +87,10 @@ sub buss {
       GROUP BY b.number, b.label, b.mono, b.pre_on, pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console
       ORDER BY b.number ASC)
     UNION
-      SELECT  b.number, b.label, b.mono, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console, 0 AS count, 0 AS pre_level 
+      (SELECT  b.number, b.label, b.mono, b.pre_on, b.pre_balance, b.level, b.on_off, b.interlock, b.exclusive, b.global_reset, b.console, 0 AS count, 0 AS pre_level
         FROM buss_config b
         WHERE (SELECT COUNT(*) FROM module_config m WHERE m.console = b.console) = 0
-        ORDER BY b.number ASC|);
+        ORDER BY b.number ASC)|);
 
   $self->htmlHeader(title => 'Buss configuration', page => 'buss');
   div id => 'console_list', class => 'hidden';

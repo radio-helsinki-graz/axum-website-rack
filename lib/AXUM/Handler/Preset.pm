@@ -357,7 +357,7 @@ sub preset {
   end;
 
   table;
-   Tr; th colspan => 4, "Settings for: $preset->{label}"; end;
+   Tr; th colspan => 4, "Settings for preset: $preset->{label}"; end;
    Tr;
     th '';
     th 'Override';
