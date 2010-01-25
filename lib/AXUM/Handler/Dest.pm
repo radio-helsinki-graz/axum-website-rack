@@ -15,6 +15,7 @@ YAWF::register(
 
 
 my @routing_types = ('stereo', 'left', 'right');
+my @hybrid_routing_types = ('mono', 'left', 'right');
 
 sub _channels {
   return shift->dbAll(q|SELECT s.addr, a.active, s.slot_nr, g.channel, a.name
@@ -61,8 +62,8 @@ sub _col {
       !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
   if($n eq 'routing') {
-    a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "routing_list")', $d->{number}, $n, $v),
-      $v == 0 ? (class => 'off') : (), $routing_types[$v];
+    a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")', $d->{number}, $n, $v, $d->{mix_minus_source}?('hybrid_routing_list'):('routing_list')),
+      $v == 0 ? (class => 'off') : (), $d->{mix_minus_source} ? ($hybrid_routing_types[$v]) : ($routing_types[$v]);
   }
 }
 
@@ -143,6 +144,12 @@ sub dest {
   div id => 'routing_list', class => 'hidden';
    Select;
     option value => $_, $routing_types[$_]
+      for (0..2);
+   end;
+  end;
+  div id => 'hybrid_routing_list', class => 'hidden';
+   Select;
+    option value => $_, $hybrid_routing_types[$_]
       for (0..2);
    end;
   end;
@@ -269,7 +276,8 @@ sub ajax {
       my @l = split /_/, $f->{$f->{field}};
       _col $f->{field}, { number => $f->{item}, $1.'_addr' => $l[0], $1.'_sub_ch' => $l[1] }, _channels $self;
     } else {
-      _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
+      my $mmsrc = $self->dbRow('SELECT mix_minus_source FROM dest_config WHERE number = ?', $f->{item});
+      _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, $mmsrc->{mix_minus_source} ? (mix_minus_source => $mmsrc->{mix_minus_source}):() },
         $f->{field} eq 'source' || $f->{field} eq 'mix_minus_source' ?
           $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY number') : ();
     }
