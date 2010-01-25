@@ -71,12 +71,19 @@ sub _create_dest {
   my($self, $chan) = @_;
 
   my $f = $self->formValidate(
-    { name => 'output1', enum => [ map "$_->{addr}_$_->{channel}", @$chan ] },
-    { name => 'output2', enum => [ map "$_->{addr}_$_->{channel}", @$chan ] },
+    { name => 'output1', regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
+    { name => 'output2', regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
     { name => 'label', minlength => 1, maxlength => 32 },
   );
   die "Invalid input" if $f->{_err};
   my @outputs = (split(/_/, $f->{output1}), split(/_/, $f->{output2}));
+  if ($outputs[0] == 0) {
+    $outputs[0] = 'NULL';
+  }
+  if ($outputs[2] == 0) {
+    $outputs[2] = 'NULL';
+  }
+
 
   # get new free destination number
   my $num = $self->dbRow(q|SELECT gen
@@ -85,9 +92,8 @@ sub _create_dest {
     LIMIT 1|
   )->{gen};
   # insert row
-  $self->dbExec(q|
-    INSERT INTO dest_config (number, label, output1_addr, output1_sub_ch, output2_addr, output2_sub_ch) VALUES (!l)|,
-    [ $num, $f->{label}, @outputs ]);
+  $self->dbExec(sprintf("INSERT INTO dest_config (number, label, output1_addr, output1_sub_ch, output2_addr, output2_sub_ch) VALUES (%d, '%s', %s, %d, %s, %d)",
+    $num, $f->{label}, $outputs[0], $outputs[1], $outputs[2], $outputs[3]));
   $self->dbExec("SELECT dest_config_renumber();");
 }
 
