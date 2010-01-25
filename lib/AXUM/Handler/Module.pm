@@ -179,6 +179,10 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "src_preset_list")', $d->{number}, $n, $v),
       !$v ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
+  if($n eq 'overrule_active') {
+    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number, $n, $v?0:1),
+      $v ? 'yes' : (class => 'off', 'no');
+  }
   if($n eq 'gain') {
     a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
@@ -390,6 +394,7 @@ sub conf {
       source_f, source_f_preset,
       source_g, source_g_preset,
       source_h, source_h_preset,
+      overrule_active,
       use_gain_preset, gain,
       use_lc_preset, lc_frequency, lc_on_off,
       use_insert_preset, insert_source, insert_on_off,
@@ -457,17 +462,24 @@ sub conf {
    end;
   end;
   table;
-   Tr; th colspan => 4, "Configuration for module $nr - Console $mod->{console}"; end;
-   Tr; th colspan => 2; th 'Processing'; th 'Routing'; end; end;
-   Tr; th; th 'Source'; th 'Preset'; th 'Preset'; end; end;
+   Tr; th colspan => 5, "Configuration for module $nr - Console $mod->{console}"; end;
+   Tr; th colspan => 2; th 'Processing'; th 'Routing'; th 'Ignore'; end; end;
+   Tr; th; th 'Source'; th 'Preset'; th 'Preset'; th 'Module state'; end; end;
    for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
      my $u = 0;
      for my $b (@$bus) {
       next if !$mod->{$busses[$b->{number}-1].'_assignment'};
       $u += $rp{$s}->{$busses[$b->{number}-1].'_use_preset'};
      }
-     Tr; th "Preset \u$s"; td; _col "source_$s", $mod, $src_lst; end; td; _col "source_${s}_preset", $mod, $src_preset_lst; end; td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
-     Tr id => "routing_$s", class => 'hidden';
+     Tr;
+      th "Preset \u$s";
+      td; _col "source_$s", $mod, $src_lst; end;
+      td; _col "source_${s}_preset", $mod, $src_preset_lst; end;
+      td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
+      if ($s eq 'a') {
+       td rowspan=>8; _col 'overrule_active', $mod; end;
+      }
+      Tr id => "routing_$s", class => 'hidden';
       td '';
       td colspan => 3, style => 'padding: 10px';
        _routingtable($rp{$s}, $bus, "\u$s");
@@ -548,7 +560,7 @@ sub conf {
 sub ajax {
   my $self = shift;
 
-  my @booleans = qw|use_gain_preset use_lc_preset use_insert_preset use_phase_preset use_mono_preset use_eq_preset use_dyn_preset use_mod_preset lc_on_off insert_on_off phase_on_off mono_on_off eq_on_off dyn_on_off mod_on_off|;
+  my @booleans = qw|overrule_active use_gain_preset use_lc_preset use_insert_preset use_phase_preset use_mono_preset use_eq_preset use_dyn_preset use_mod_preset lc_on_off insert_on_off phase_on_off mono_on_off eq_on_off dyn_on_off mod_on_off|;
 
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
