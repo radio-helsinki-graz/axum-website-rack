@@ -601,7 +601,7 @@ sub ajax {
   my %set;
   defined $f->{$_} && ($f->{$_} *= 511)
     for (map "${_}_balance", @busses);
-  defined $f->{$_} and ((($_ =~ /source_[a|b|c|d]_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
+  defined $f->{$_} and ((($_ =~ /source_[a|b|c|d|e|f|g|h]_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
     for(@booleans, qw|source_a source_b source_c source_d source_e source_f source_g source_h
                       source_a_preset source_b_preset source_c_preset source_d_preset source_e_preset source_f_preset source_g_preset source_h_preset
                       insert_source mod_level lc_frequency gain phase mono|, map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
