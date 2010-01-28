@@ -332,6 +332,8 @@ sub _routingtable {
    end;
    if ($type eq '') {
      td; _col 'm2c_routing', $mod; end;
+   } else {
+     td; _col "m2c_routing_\l$type", $mod; end;
    }
   end;
   Tr;
@@ -417,7 +419,7 @@ sub conf {
 
   my %rp;
   for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
-    $rp{$s} = $self->dbRow("SELECT r.mod_number, r.mod_preset, !s FROM routing_preset r
+    $rp{$s} = $self->dbRow("SELECT r.mod_number, r.mod_preset, m.console, m.number, !s FROM routing_preset r
                             JOIN module_config m ON m.number = mod_number
                             WHERE mod_number = ? AND mod_preset = '\u$s'", $rp_bsel, $nr);
     return 404 if !$rp{$s}->{mod_number};
@@ -719,13 +721,23 @@ sub m2cajax {
    $set{"agc_amount = o.agc_amount"} = 0;
    $set{"agc_threshold = o.agc_threshold"} = 0;
   }
-  if ($f->{field} =~ /routing/) {
+  if ($f->{field} eq 'routing') {
     $set{"$_ = o.$_"} = 0 for(map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
   }
-
-  $self->dbExec('UPDATE module_config !H
-                 FROM module_config o
-                 WHERE module_config.console = o.console AND o.number = ? AND module_config.number != o.number', \%set, $f->{item});
+  if ($f->{field} =~ /routing_([a|b|c|d|e|f|g|h])/) {
+    $set{"$_ = o.$_"} = 0 for(map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
+    $self->dbExec('UPDATE routing_preset !H
+                   FROM routing_preset o, module_config m
+                   WHERE m.console = (SELECT console FROM module_config WHERE number = ?) AND
+                   m.number = routing_preset.mod_number AND
+                   o.mod_number = ? AND
+                   routing_preset.mod_preset = ? AND
+                   routing_preset.mod_preset = o.mod_preset', \%set, $f->{item}, $f->{item}, "\u$1") if keys %set;
+  } else {
+    $self->dbExec('UPDATE module_config !H
+                   FROM module_config o
+                   WHERE module_config.console = o.console AND o.number = ? AND module_config.number != o.number', \%set, $f->{item});
+  }
 
   a href => '#', class => 'off', "Done";
 }
