@@ -300,7 +300,7 @@ sub _dyntable {
     end;
    end;
    Tr;
-    th 'AGC amount';
+    th 'AGC ratio';
     td;
      input type => 'text', class => 'text', size => 4, name => "agc_amount",
         value => $d->{agc_amount};

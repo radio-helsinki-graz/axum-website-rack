@@ -130,7 +130,7 @@ sub _dyntable {
     end;
    end;
    Tr;
-    th 'AGC amount';
+    th 'AGC ratio';
     td;
      input type => 'text', class => 'text', size => 4, name => "agc_amount",
         value => $d->{agc_amount};
@@ -454,7 +454,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label gain lc_frequency phase mono dyn_amount mod_lvl|, (map($_, @booleans)));
+      for(qw|label gain lc_frequency phase mono agc_amount mod_lvl|, (map($_, @booleans)));
 
       $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
