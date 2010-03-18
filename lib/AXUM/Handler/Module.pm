@@ -676,7 +676,7 @@ sub rpajax {
     for(map +("${_}_use_preset", "${_}_level", "${_}_on_off", "${_}_pre_post", "${_}_balance"), @busses);
 
   $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_preset = ?', \%set, $f->{item}, $type) if keys %set;
-  _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} }, $type;
+  _col $f->{field}, { mod_number => $f->{item}, $f->{field} => $f->{$f->{field}} }, $type;
 }
 
 sub m2cajax {
