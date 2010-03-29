@@ -5,9 +5,11 @@ use strict;
 use warnings;
 use YAWF ':html';
 
+
 YAWF::register(
   qr{service} => \&service,
   qr{service/functions} => \&functions,
+  qr{service/versions} => \&versions,
   qr{ajax/service} => \&ajax,
 );
 
@@ -26,6 +28,7 @@ sub service {
    Tr; th 4; td; a href => '/service/templates', 'Templates'; end; end;
    Tr; th 5; td; a href => '/service/predefined', 'Stored configurations'; end; end;
    Tr; th 6; td; a href => '/service/functions', 'Engine functions'; end; end;
+   Tr; th 7; td; a href => '/service/versions?pkg=axum', 'Package versions'; end; end;
   end;
   $self->htmlFooter;
 }
@@ -105,6 +108,47 @@ sub ajax {
   }
 }
 
+sub versions {
+  my $self = shift;
+  my $f = $self->formValidate(
+    { name => 'pkg', template => 'asciiprint' },
+  );
+
+  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'versions');
+
+  my $n = 0;
+  my @pkgs;
+  my $pkgs = `pacman -Qs $f->{pkg}`;
+  my @lines = split "\n", $pkgs;
+  my $pkginfo;
+
+  txt Dumper(@pkgs);
+
+  table;
+   Tr; th colspan => 5, $self->OEMFullProductName().' Package versions'; end;
+   Tr; th 'Package name'; th 'Version'; th 'Build date'; th 'Install date'; end;
+   for (@lines) {
+     $_ =~ s/^\S+\///g;
+     if ($_ =~ /^\s+/) {
+     } else {
+       Tr;
+        $_ =~ /(.*)\s(.*)/;
+        $pkginfo = `pacman -Qi $1`;
+        $pkginfo =~ /Name\s+:(.*)/;
+        td $1;
+        $pkginfo =~ /Version\s+:(.*)/;
+        td $1;
+        $pkginfo =~ /Build Date\s+:(.*)/;
+        td $1;
+        $pkginfo =~ /Install Date\s+:(.*)/;
+        td $1;
+       end;
+     }
+   }
+  end;
+
+   $self->htmlFooter;
+}
 
 1;
 
