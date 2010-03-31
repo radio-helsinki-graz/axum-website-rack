@@ -28,6 +28,16 @@ sub overview {
   return 404 if $p->{_err};
   $p = $p->{p};
 
+  my $bsel;
+  $bsel .= "m.${_}_assignment, "
+    for (@busses);
+  $bsel .= "false";
+
+  my $rp_bsel;
+  $rp_bsel .= "r.${_}_use_preset, m.${_}_assignment, "
+    for (@busses);
+  $rp_bsel .= "false";
+
   my $mod = $self->dbAll(q|
     SELECT m.number,
       a.label AS label_a, a.active AS active_a, pa.label AS label_a_preset,
@@ -38,7 +48,8 @@ sub overview {
       f.label AS label_f, f.active AS active_f, pf.label AS label_f_preset,
       g.label AS label_g, g.active AS active_g, pg.label AS label_g_preset,
       h.label AS label_h, h.active AS active_h, ph.label AS label_h_preset,
-      m.insert_on_off, m.lc_on_off, m.eq_on_off, m.dyn_on_off, m.console
+      m.insert_on_off, m.lc_on_off, m.eq_on_off, m.dyn_on_off, m.console,
+      !s
     FROM module_config m
     LEFT JOIN matrix_sources a ON a.number = m.source_a
     LEFT JOIN matrix_sources b ON b.number = m.source_b
@@ -58,8 +69,10 @@ sub overview {
     LEFT JOIN src_preset ph ON ph.number = m.source_h_preset
     WHERE m.number >= ? AND m.number <= ?
     ORDER BY m.number|,
-    $p*32-31, $p*32
+    $bsel, $p*32-31, $p*32
   );
+
+  my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
 
   my $where = "WHERE ";
   $where .= "(${_}_assignment = true AND ${_}_use_preset = true) OR "
@@ -98,10 +111,19 @@ sub overview {
        Tr $p > $dspcount ? (class => 'inactive') : ();
         th "Preset \u$src";
         for (@m) {
-          td;
-           a href => "/module/$mod->[$_]{number}",
-            !$mod->[$_]{"active_$src"} || !$mod->[$_]{"label_$src"} || ($mod->[$_]{"label_$src"} eq 'none') ? (class => 'off') : (), $mod->[$_]{"label_$src"}.($mod->[$_]{"label_".$src."_preset"}?(' ('.$mod->[$_]{"label_".$src."_preset"}.')') : ()) ||'none';
-          end;
+          my %rp;
+          $rp{$src} = $self->dbRow("SELECT r.mod_number, r.mod_preset, m.console, m.number, !s FROM routing_preset r
+                                    JOIN module_config m ON m.number = mod_number
+                                    WHERE mod_number = ? AND mod_preset = '\u$src'", $rp_bsel, $mod->[$_]{number});
+           my $u = 0;
+           for my $b (@$bus) {
+            next if !$mod->[$_]{$busses[$b->{number}-1].'_assignment'};
+            $u += $rp{$src}->{$busses[$b->{number}-1].'_use_preset'};
+           }
+           td;
+            a href => "/module/$mod->[$_]{number}",
+             !$mod->[$_]{"active_$src"} || !$mod->[$_]{"label_$src"} || ($mod->[$_]{"label_$src"} eq 'none') ? (class => 'off') : (), $mod->[$_]{"label_$src"}.($mod->[$_]{"label_".$src."_preset"}?(' ('.$mod->[$_]{"label_".$src."_preset"}.')') : ()).($u?(' - #'):()) ||'none';
+           end;
         }
        end;
      }
