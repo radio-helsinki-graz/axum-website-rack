@@ -122,8 +122,6 @@ sub versions {
   my @lines = split "\n", $pkgs;
   my $pkginfo;
 
-  txt Dumper(@pkgs);
-
   table;
    Tr; th colspan => 5, $self->OEMFullProductName().' Package versions'; end;
    Tr; th 'Package name'; th 'Version'; th 'Build date'; th 'Install date'; end;
