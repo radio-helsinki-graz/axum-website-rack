@@ -197,7 +197,6 @@ sub listtemp {
       td $p->{firm_major};
       td $p->{cnt};
       td;
-       $p->{cfg_name} =~ s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
        a href => '/service/templates?del=true;man='.$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
