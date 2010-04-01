@@ -87,7 +87,7 @@ sub overview {
   $self->htmlHeader(page => 'module', title => 'Module overview');
   table;
    Tr;
-    th colspan => 9;
+    th colspan => 10;
      p class => 'navigate';
       txt 'Page: ';
       a href => "?p=$_", $p == $_ ? (class => 'sel') : (), $_
@@ -100,16 +100,20 @@ sub overview {
    for my $m (0..$#$mod/8) {
      my @m = ($m*8)..($m*8+7);
      Tr $p > $dspcount ? (class => 'inactive') : ();
-      th '';
+      th colspan => 2, '';
       th sprintf 'Module %d', $mod->[$_]{number} for (@m);
      end;
      Tr $p > $dspcount ? (class => 'inactive') : ();
-      th 'Console';
+      th colspan => 2, 'Console';
       td sprintf '%d', $mod->[$_]{console} for (@m);
      end;
      for my $src ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
        Tr $p > $dspcount ? (class => 'inactive') : ();
-        th "Preset \u$src";
+        if ($src =~ /[a|c|e|g]/) {
+          my $number = ((ord($src)-ord('a'))/2)+1;
+          th rowspan => 2, "Preset $number";
+        }
+        th ((ord($src)&1) ? ('A'):('B'));
         for (@m) {
           my %rp;
           $rp{$src} = $self->dbRow("SELECT r.mod_number, r.mod_preset, m.console, m.number, !s FROM routing_preset r
@@ -128,7 +132,7 @@ sub overview {
        end;
      }
      Tr $p > $dspcount ? (class => 'inactive') : ();
-      th 'Processing';
+      th colspan => 2, 'Processing';
       for (@m) {
         my $active = ($mod->[$_]{lc_on_off} or
                       $mod->[$_]{insert_on_off} or
@@ -151,7 +155,7 @@ sub overview {
       }
      end;
      Tr $p > $dspcount ? (class => 'inactive') : ();
-      th 'Routing';
+      th colspan => 2, 'Routing';
       for (@m) {
         td;
           my $nr = $_;
@@ -486,9 +490,9 @@ sub conf {
    end;
   end;
   table;
-   Tr; th colspan => 5, "Configuration for module $nr - Console $mod->{console}"; end;
-   Tr; th colspan => 2; th 'Processing'; th 'Routing'; th 'Ignore'; end; end;
-   Tr; th; th 'Source'; th 'Preset'; th 'Preset'; th 'Module state'; end; end;
+   Tr; th colspan => 6, "Configuration for module $nr - Console $mod->{console}"; end;
+   Tr; th colspan => 3; th 'Processing'; th 'Routing'; th 'Ignore'; end; end;
+   Tr; th colspan => 2; th 'Source'; th 'Preset'; th 'Preset'; th 'Module state'; end; end;
    for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
      my $u = 0;
      for my $b (@$bus) {
@@ -496,7 +500,11 @@ sub conf {
       $u += $rp{$s}->{$busses[$b->{number}-1].'_use_preset'};
      }
      Tr;
-      th "Preset \u$s";
+      if ($s =~ /[a|c|e|g]/) {
+        my $number = ((ord($s)-ord('a'))/2)+1;
+        th rowspan => 2, "Preset $number";
+      }
+      th ((ord($s)&1) ? ('A'):('B'));
       td; _col "source_$s", $mod, $src_lst; end;
       td; _col "source_${s}_preset", $mod, $src_preset_lst; end;
       td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
@@ -511,6 +519,8 @@ sub conf {
      end;
    }
    Tr; td colspan => 4, style => 'background: none', ''; end;
+  end;
+  table;
    Tr; th colspan => 4, 'Processing'; end;
    Tr;
     th; end;
