@@ -3,6 +3,7 @@ package AXUM::Handler::MambaNet;
 use strict;
 use warnings;
 use YAWF ':html';
+use URI::Escape;
 
 
 YAWF::register(
@@ -148,11 +149,7 @@ sub listpre {
       td $p->{cfg_name};
       td $p->{cnt};
       td;
-       # special characters '#', '+' and '&' have to be escaped manually
-       $p->{cfg_name} =~ s/#/%23/g;
-       $p->{cfg_name} =~ s/&/%26/g;
-       $p->{cfg_name} =~ s/\+/%2b/g;
-       a href => '/service/predefined?del='.$p->{cfg_name}.";man=".$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
+       a href => '/service/predefined?del='.uri_escape_utf8($p->{cfg_name}).";man=".$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
