@@ -28,8 +28,15 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if ($n eq 'mod_preset') {
-    $v ? () : ($v = 'NULL');
-    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "mod_preset_list", "Select module preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ($v);
+    my $label = 'none';
+    if ($v) {
+      my $number = int(((ord($v)-ord('A'))/2)+1);
+      my $char = ((ord($v)&1) ? ('A'):('B'));
+      $label = "$number$char";
+    } else {
+      $v = 'NULL';
+    }
+    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "mod_preset_list", "Select module preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ($label);
   }
   if ($n eq 'buss_preset') {
     my $s->{label} = 'None';
@@ -102,13 +109,17 @@ sub consolepreset {
   div id => 'mod_preset_list', class => 'hidden';
    Select;
     option value => 'NULL', 'None';
-    option value => $_, $_ for ('A'..'H');
+    for ('A'..'H') {
+      my $number = int(((ord($_)-ord('A'))/2)+1);
+      my $char = ((ord($_)&1) ? ('A'):('B'));
+      option value => $_, "$number$char";
+    }
    end;
   end;
   div id => 'buss_preset_list', class => 'hidden';
    Select;
     option value => 'NULL', 'None';
-    option value => $_->{number}, $_->{label} for (@$buss_preset); 
+    option value => $_->{number}, $_->{label} for (@$buss_preset);
    end;
   end;
   table;
