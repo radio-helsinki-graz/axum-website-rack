@@ -59,7 +59,7 @@ sub _col {
     }
     a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")',
         $d->{number}, $n, $v, $n eq 'source' ? 'source_items' : 'mix_minus_items'),
-      !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
+      !($v > 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
   }
   if($n eq 'routing') {
     a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")', $d->{number}, $n, $v, $d->{mix_minus_source}?('hybrid_routing_list'):('routing_list')),
@@ -115,8 +115,8 @@ sub dest {
   # if POST, create destination
   _create_dest($self, $ch) if $self->reqMethod eq 'POST';
 
-  my $pos_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY pos');
-  my $src_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY number');
+  my $pos_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources WHERE number >= 0 ORDER BY pos');
+  my $src_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources WHERE number >= 0 ORDER BY number');
   my $dest = $self->dbAll(q|SELECT pos, number, label, output1_addr,
     output1_sub_ch, output2_addr, output2_sub_ch, level, source, routing, mix_minus_source
     FROM dest_config ORDER BY pos|);
@@ -279,7 +279,7 @@ sub ajax {
       my $mmsrc = $self->dbRow('SELECT mix_minus_source FROM dest_config WHERE number = ?', $f->{item});
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, $mmsrc->{mix_minus_source} ? (mix_minus_source => $mmsrc->{mix_minus_source}):() },
         $f->{field} eq 'source' || $f->{field} eq 'mix_minus_source' ?
-          $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY number') : ();
+          $self->dbAll('SELECT number, label, type, active FROM matrix_sources WHERE number >= 0 ORDER BY number') : ();
     }
   }
 }

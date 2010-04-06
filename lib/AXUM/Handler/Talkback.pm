@@ -23,7 +23,7 @@ sub _col {
     }
   }
   a href => '#', onclick => sprintf('return conf_select("talkback", %d, "source", %d, this, "matrix_sources")', $d->{number}, $v),
-    !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
+    !($v > 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
 }
 
 
@@ -31,8 +31,8 @@ sub talkback {
   my $self = shift;
 
   my $tb = $self->dbAll(q|SELECT number, source FROM talkback_config ORDER BY number|);
-  my $pos_lst = $self->dbAll(q|SELECT number, type, label, active FROM matrix_sources ORDER BY pos|);
-  my $src_lst = $self->dbAll(q|SELECT number, type, label, active FROM matrix_sources ORDER BY number|);
+  my $pos_lst = $self->dbAll(q|SELECT number, type, label, active FROM matrix_sources WHERE number >= 0 ORDER BY pos|);
+  my $src_lst = $self->dbAll(q|SELECT number, type, label, active FROM matrix_sources WHERE number >= 0 ORDER BY number|);
 
   $self->htmlHeader(page => 'talkback', title => 'Talkback configuration');
   $self->htmlSourceList($pos_lst, 'matrix_sources');

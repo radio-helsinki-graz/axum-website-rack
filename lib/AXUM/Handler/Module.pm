@@ -74,6 +74,8 @@ sub overview {
 
   my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
 
+
+
   my $where = "WHERE ";
   $where .= "(${_}_assignment = true AND ${_}_use_preset = true) OR "
     for (@busses);
@@ -192,7 +194,7 @@ sub _col {
       }
     }
     a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
-      !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
+      !($v != 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
   }
   if ($n =~ /source_[a|b|c|d|e|f|g|h]_preset/) {
     my $s;
@@ -700,6 +702,7 @@ sub rpajax {
     ), @busses
   );
   return 404 if $f->{_err};
+
 
   my %set;
   defined $f->{$_} && ($f->{$_} *= 511)

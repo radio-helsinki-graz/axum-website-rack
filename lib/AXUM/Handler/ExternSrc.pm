@@ -25,7 +25,7 @@ sub _col {
       }
     }
     a href => '#', onclick => sprintf('return conf_select("externsrc", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
-      !$v || !$s->{active} ? (class => 'off') : (), $v ? $s->{label} : 'none';
+      !($v > 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
   }
   if ($n =~ /^safe/) {
     a href => '#', onclick => sprintf('return conf_set("externsrc", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
@@ -37,8 +37,8 @@ sub _col {
 sub extsrc {
   my $self = shift;
 
-  my $pos_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY pos');
-  my $src_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources ORDER BY number');
+  my $pos_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources WHERE number >= 0 ORDER BY pos');
+  my $src_lst = $self->dbAll('SELECT number, label, type, active FROM matrix_sources WHERE number >= 0 ORDER BY number');
   my $mb = $self->dbAll('SELECT number, label, number <= dsp_count()*4 AS active
     FROM monitor_buss_config ORDER BY number');
   my $es = $self->dbAll('SELECT number, !s FROM extern_src_config ORDER BY number',
