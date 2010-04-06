@@ -164,7 +164,7 @@ sub overview {
           my @array = @$buss_cfg;
           my $enabled = "";
           ($enabled .= ($array[$_]{number} eq $mod->[$nr]{number})) for 0..$#array;
-          a href => "/module/$mod->[$_]{number}", ($enabled) ? ('active') : (class => 'off', 'inactive');
+          a href => "/module/$mod->[$_]{number}", ($enabled) ? ('active') : (class => 'off', 'none');
         end;
       }
      end;
@@ -509,7 +509,7 @@ sub conf {
       th ((ord($s)&1) ? ('A'):('B'));
       td; _col "source_$s", $mod, $src_lst; end;
       td; _col "source_${s}_preset", $mod, $src_preset_lst; end;
-      td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'inactive') : ('active'); end;
+      td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'none') : ('active'); end;
       if ($s eq 'a') {
        td rowspan=>8; _col 'overrule_active', $mod; end;
       }
