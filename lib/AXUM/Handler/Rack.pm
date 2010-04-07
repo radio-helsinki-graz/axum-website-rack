@@ -4,7 +4,7 @@ package AXUM::Handler::Rack;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
+
 
 YAWF::register(
   qr{rack} => \&list,
@@ -406,10 +406,15 @@ sub ajax {
   my $i = $self->dbRow("SELECT (id).man, (id).prod, firm_major FROM addresses WHERE addr = ?  ", oct "0x$f->{item}");
   $self->dbExec("DELETE FROM predefined_node_config WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
 
-  my $func = $self->dbRow("SELECT MIN((func).seq) AS min FROM node_config WHERE addr = ?  ", oct "0x$f->{item}");
-  my $obj_cfgs = $self->dbAll("SELECT object, (func).type, (func).seq, (func).func FROM node_config WHERE addr = ?  ", oct "0x$f->{item}");
+  my $obj_cfgs = $self->dbAll("SELECT object, (func).type,
+                               CASE
+                                WHEN (func).type = 5 THEN (SELECT pos FROM src_config WHERE number = ((func).seq+1))
+                                WHEN (func).type = 6 THEN (SELECT pos FROM dest_config WHERE number = ((func).seq+1))
+                               ELSE (func).seq
+                               END AS seq,
+                               (func).func FROM node_config WHERE addr = ?", oct "0x$f->{item}");
   for my $o (@$obj_cfgs) {
-    my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}-$func->{min}, $o->{func});
+    my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}, $o->{func});
     $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func);
   }
   txt $f->{export};
@@ -452,16 +457,16 @@ sub setpre {
 
   #first insert all functions with sequence number
   $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func)
-                 SELECT a.addr, p.object, (p.func).type, (p.func).seq+$f->{offset}, (func).func
+                 SELECT a.addr, p.object, (p.func).type, CASE
+                   WHEN (p.func).type = 5 THEN ((SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset}))-1
+                   WHEN (p.func).type = 6 THEN ((SELECT number FROM dest_config WHERE pos = ((func).seq)+$f->{offset}))-1
+                   WHEN (p.func).type = 4 THEN (p.func).seq
+                   ELSE (p.func).seq+$f->{offset} END AS seq,
+                   (func).func
                  FROM predefined_node_config p
                  JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
-                 WHERE a.addr = ? AND p.cfg_name = ? AND (p.func).type != 4", oct "0x$f->{addr}", $f->{predefined});
-  #nex insert all functions without sequence number
-  $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func)
-                 SELECT a.addr, p.object, (p.func).type, (p.func).seq, (func).func
-                 FROM predefined_node_config p
-                 JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
-                 WHERE a.addr = ? AND p.cfg_name = ? AND (p.func).type = 4", oct "0x$f->{addr}", $f->{predefined});
+                 WHERE a.addr = ? AND p.cfg_name = ?", oct "0x$f->{addr}", $f->{predefined});
+
   txt $f->{predefined};
 }
 
