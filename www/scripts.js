@@ -339,7 +339,7 @@ function conf_predefined(addr, obj) {
 
     while(obj.nodeName.toLowerCase() != 'td')
       obj = obj.parentNode;
-    ajax('/ajax/setpre?addr='+addr+';predefined='+v1+';offset='+v2, function(h) {
+    ajax('/ajax/setpre?addr='+addr+';predefined='+encodeURIComponent(v1)+';offset='+v2, function(h) {
       obj.innerHTML = h.responseText;
       remove_input(input_obj);
     });
