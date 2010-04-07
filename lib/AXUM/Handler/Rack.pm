@@ -31,7 +31,8 @@ sub listui {
     (SELECT name FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_name,
     (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr) AS config_cnt,
     (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr) AS default_cnt,
-    (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cnt
+    (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cfg_cnt,
+    (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt
     FROM slot_config s
     RIGHT JOIN addresses a ON a.addr = s.addr WHERE s.addr IS NULL AND ((a.parent).man != 1 OR (a.parent).prod != 12) AND NOT ((a.id).man=(a.parent).man AND (a.id).prod=(a.parent).prod AND (a.id).id=(a.parent).id)
     ORDER BY NULLIF((a.parent).man, 0), (a.parent).prod, (a.parent).id, NOT a.active, (a.id).man, (a.id).prod, (a.id).id');
@@ -69,7 +70,7 @@ sub listui {
        }
       end;
       td;
-       if($c->{objects} and $c->{predefined_cnt}) {
+       if($c->{objects} and ($c->{predefined_cfg_cnt} or $c->{predefined_dflt_cnt})) {
          a href => '#', onclick => sprintf('return conf_predefined("%08X", this)', $c->{addr}), 'import';
        } else {
          a href => '#', class => 'off', 'no import data';
@@ -96,7 +97,8 @@ sub list {
     (SELECT COUNT(*) FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major) AS objects,
     (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr) AS config_cnt,
     (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr) AS default_cnt,
-    (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cnt
+    (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cfg_cnt,
+    (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt
     FROM slot_config s JOIN addresses a ON a.addr = s.addr ORDER BY s.slot_nr');
 
   $self->htmlHeader(title => 'Rack configuration', page => 'rack');
@@ -129,7 +131,7 @@ sub list {
        }
       end;
       td;
-       if($c->{objects} and $c->{predefined_cnt}) {
+       if($c->{objects} and ($c->{predefined_cfg_cnt} or $c->{predefined_dflt_cnt})) {
          a href => '#', onclick => sprintf('return conf_predefined("%08X", this)', $c->{addr}), 'import';
        } else {
          a href => '#', class => 'off', 'no import data';
@@ -405,6 +407,7 @@ sub ajax {
 
   my $i = $self->dbRow("SELECT (id).man, (id).prod, firm_major FROM addresses WHERE addr = ?  ", oct "0x$f->{item}");
   $self->dbExec("DELETE FROM predefined_node_config WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
+  $self->dbExec("DELETE FROM predefined_node_defaults WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
 
   my $obj_cfgs = $self->dbAll("SELECT object, (func).type,
                                CASE
@@ -417,6 +420,11 @@ sub ajax {
     my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}, $o->{func});
     $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func);
   }
+
+  my $obj_dflts = $self->dbAll("SELECT object, data FROM defaults WHERE addr = ?", oct "0x$f->{item}");
+  for my $o (@$obj_dflts) {
+    $self->dbExec("INSERT INTO predefined_node_defaults (man_id, prod_id, firm_major, cfg_name, object, data) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $o->{data});
+  }
   txt $f->{export};
 }
 
@@ -428,17 +436,20 @@ sub loadpre {
   );
   return 404 if $f->{_err};
 
-  my $pre_cfg = $self->dbAll("SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) AS cnt
+  my $pre_cfg = $self->dbAll("SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) AS cnt_func,
+                              (SELECT COUNT(*) FROM predefined_node_defaults d 
+                                JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major
+                                WHERE a.addr = ? AND p.cfg_name = d.cfg_name) AS cnt_def
                               FROM predefined_node_config p
                               JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
                               WHERE a.addr = ?
                               GROUP BY p.cfg_name, p.man_id, p.prod_id, p.firm_major
-                              ORDER BY p.man_id, p.prod_id, p.firm_major", oct "0x$f->{addr}");
+                              ORDER BY p.man_id, p.prod_id, p.firm_major", oct "0x$f->{addr}", oct "0x$f->{addr}");
 
   div id => 'pre_main'; Select;
   for my $p (@$pre_cfg)
   {
-    option value => "$p->{cfg_name}", $p->{cfg_name}." (".$p->{cnt}.")";
+    option value => "$p->{cfg_name}", $p->{cfg_name}." (".$p->{cnt_def}."/".$p->{cnt_func}.")";
   }
   end;
 }
@@ -454,8 +465,9 @@ sub setpre {
   return 404 if $f->{_err};
 
   $self->dbExec("DELETE FROM node_config WHERE addr = ?", oct "0x$f->{addr}");
+  $self->dbExec("DELETE FROM defaults WHERE addr = ?", oct "0x$f->{addr}");
 
-  #first insert all functions with sequence number
+  #Insert all functions
   $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func)
                  SELECT a.addr, p.object, (p.func).type, CASE
                    WHEN (p.func).type = 5 THEN ((SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset}))-1
@@ -466,6 +478,12 @@ sub setpre {
                  FROM predefined_node_config p
                  JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
                  WHERE a.addr = ? AND p.cfg_name = ?", oct "0x$f->{addr}", $f->{predefined});
+
+  $self->dbExec("INSERT INTO defaults (addr, object, data)
+                 SELECT a.addr, d.object, d.data
+                 FROM predefined_node_defaults d
+                 JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major
+                 WHERE a.addr = ? AND d.cfg_name = ?", oct "0x$f->{addr}", $f->{predefined});
 
   txt $f->{predefined};
 }
