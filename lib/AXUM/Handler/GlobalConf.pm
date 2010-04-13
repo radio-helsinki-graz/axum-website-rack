@@ -4,12 +4,14 @@ package AXUM::Handler::GlobalConf;
 use strict;
 use warnings;
 use YAWF ':html';
+use Data::Dumper;
 
 
 YAWF::register(
   qr{globalconf} => \&conf,
   qr{ajax/globalconf} => \&ajax,
   qr{ipclock} => \&ipclock,
+  qr{setdatetime} => \&setdatetime,
   qr{ajax/tz_lst} => \&timezone_lst,
   qr{ajax/set_tz} => \&set_tz,
   qr{ajax/ip} => \&set_ip,
@@ -161,13 +163,21 @@ sub ipclock
   Tr; th "DNS server"; td; _col 'net_dns', $dns; end; end;
   Tr class => 'empty'; th colspan => 2; end; end;
   Tr; th colspan => 3, "Clock";
-  Tr; th colspan => 3; "(effective after reboot)"; end;
+  Tr; th colspan => 3, "(effective after reboot)"; end;
   Tr; th rowspan => 2, "Current"; td colspan => 2, `date`;
   Tr; td $sync_url; td "stratum: $sync_st"; end;
   Tr; th "time zone"; td colspan => 2; _col 'timezone', $tz; end;
   Tr; th "NTP servers"; td colspan => 2; _col 'ntp_server', $ntp_server; end;
+  Tr;
+   th "Set date/time";
+   td colspan => 2;
+    input type=>'Text', name=>'datetime', size=>'25', maxlength=>'25', id=>'datetime', class => 'hidden';
+    a href => "javascript: NewCssCal('datetime','yyyymmdd','dropdown',true,24,false)";
+     img width=>'16', height=>'16', alt=>'Pick a date', src=>'images/cal.gif';
+    end;
+   end;
   end;
-  end;
+
 
   $self->htmlFooter;
 }
@@ -399,6 +409,20 @@ sub set_ntp {
   close FILE;
 
   _col 'ntp_server', $f->{ntp_server};
+}
+
+sub setdatetime {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'date', required => '1', regex => [ qr/\d{4}-\d{2}-\d{2}/ ]},
+    { name => 'time', required => '1', regex => [ qr/\d{2}:\d{2}:\d{2}/ ]},
+  );
+  return 404 if $f->{_err};
+
+  $self->dbExec("UPDATE global_config SET date_time = ?", "$f->{date} $f->{time}");
+
+  $self->resRedirect('/ipclock');
 }
 
 
