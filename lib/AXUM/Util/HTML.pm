@@ -16,6 +16,7 @@ sub htmlHeader {
     title $o{title};
     Link href => '/style.css', rel => 'stylesheet', type => 'text/css';
     script type => 'text/javascript', src => '/scripts.js', ' ';
+    script type => 'text/javascript', src => '/datetimepicker_css.js', ' ';
    end;
    body;
     div id => $_, '' for (qw| header header_left header_right border_left border_right
