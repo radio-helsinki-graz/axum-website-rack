@@ -359,13 +359,11 @@ sub preset {
   table;
    Tr; th colspan => 4, "Settings for preset: $preset->{label}"; end;
    Tr;
-    th '';
-    th 'Override';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Override\nmodule";
     th colspan => 2, 'Preset';
    end;
    Tr;
-    th '';
-    th 'module';
     th 'state';
     th 'value';
    end;
@@ -454,7 +452,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
-      for(qw|label gain lc_frequency phase mono mod_lvl|, (map($_, @booleans)));
+      for(qw|label gain lc_frequency phase mono agc_amount mod_lvl|, (map($_, @booleans)));
 
       $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
@@ -492,8 +490,8 @@ sub dynajax {
   );
   return 404 if $f->{_err};
 
-  my %set = map +("$_ = ?" => $f->{$_}), qw|d_exp_threshold agc_amount agc_threshold|;
-
+  my %set = map +("$_ = ?" => $f->{$_}),
+    map +("d_exp_threshold", "agc_amount", "agc_threshold");
   $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $nr);
   _dyntable $f;
 }

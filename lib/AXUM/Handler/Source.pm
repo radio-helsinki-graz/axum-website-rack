@@ -154,27 +154,23 @@ sub source {
   table;
    Tr; th colspan => 34, 'Source configuration'; end;
    Tr;
-    th '';
-    th colspan => 3, '';
-    th colspan => 3, 'Input';
-    th 'Processing';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
+    th colspan => 5, 'Input';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Processing\npreset";
     th colspan => 8, 'Redlight';
     th colspan => 16, 'Monitor destination mute/dim';
-    th '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
    end;
    Tr;
-    th 'Nr';
-    th 'Label';
-    th 'Input 1 (left)';
-    th 'Input 2 (right)';
+    th '1 (left)';
+    th '2 (right)';
     th 'Phantom';
     th 'Pad';
     th 'Gain';
-    th 'Preset';
     th $_ for (1..8);
     th abbr => $_->{label}, $_->{active} ? ():(class => 'inactive'), id => "exp_monitormute$_->{number}", $_->{number}%10
       for (@$mb);
-    th '';
    end;
 
    for my $s (@$src) {
@@ -192,7 +188,7 @@ sub source {
         }
       end;
       td;
-        my $t = $self->dbRow("SELECT COUNT(*) FROM node_config WHERE (func).type = 5 AND (func).seq = $s->{number}-1 AND (func).func = 61");
+        $t = $self->dbRow("SELECT COUNT(*) FROM node_config WHERE (func).type = 5 AND (func).seq = $s->{number}-1 AND (func).func = 61");
         if ($t->{count}) {
           _col 'input_pad', $s;
         } else {
@@ -200,7 +196,7 @@ sub source {
         }
       end;
       td;
-        my $t = $self->dbRow("SELECT COUNT(*) FROM node_config WHERE (func).type = 5 AND (func).seq = $s->{number}-1 AND (func).func = 62");
+        $t = $self->dbRow("SELECT COUNT(*) FROM node_config WHERE (func).type = 5 AND (func).seq = $s->{number}-1 AND (func).func = 62");
         if ($t->{count}) {
           _col 'input_gain', $s;
         } else {

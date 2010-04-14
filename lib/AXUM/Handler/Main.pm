@@ -17,7 +17,7 @@ sub home {
 
   $self->htmlHeader(title => $self->OEMFullProductName().' configuration pages', page => 'home');
   table;
-   Tr; th colspan => 2, $self->OEMFullProductName().' configuration'; end;
+   Tr class => 'empty'; th colspan => 2; b, i $self->OEMFullProductName().' configuration'; end; end;
    Tr; th colspan => 2, 'Global configuration'; end;
    Tr; th $i++; td; a href => '/ipclock', 'IP/Clock configuration'; end; end;
    Tr; th $i++; td; a href => '/globalconf', 'Global configuration'; end; end;

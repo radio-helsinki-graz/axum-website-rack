@@ -437,7 +437,7 @@ sub loadpre {
   return 404 if $f->{_err};
 
   my $pre_cfg = $self->dbAll("SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) AS cnt_func,
-                              (SELECT COUNT(*) FROM predefined_node_defaults d 
+                              (SELECT COUNT(*) FROM predefined_node_defaults d
                                 JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major
                                 WHERE a.addr = ? AND p.cfg_name = d.cfg_name) AS cnt_def
                               FROM predefined_node_config p

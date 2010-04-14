@@ -80,19 +80,17 @@ sub monitorbuss {
   table;
    Tr; th colspan => 22, 'Monitor buss configuration'; end;
    Tr;
-    th colspan => 3, '';
-    th rowspan => 2, "Default\nselection";
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr.';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")','Interlock';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")',"Default\nselection";
     th colspan => 17, 'Automatic switching';
-    th '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Console';
    end;
    Tr;
-    th 'Nr.';
-    th 'Label';
-    th 'Interlock';
     th id => "exp_$_->{number}", abbr => $_->{label}, $_->{number}%10
       for (@$busses);
     th 'Dim level';
-    th 'Console';
    end;
 
    for my $m (@$mb) {

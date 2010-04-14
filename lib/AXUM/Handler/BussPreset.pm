@@ -187,13 +187,12 @@ sub busspreset {
       Tr; th colspan => 5, "Mix buss preset - $label->{label}"; end;
       Tr; th colspan => 5, ''; end;
       Tr;
-       th colspan => 3, '';
+       th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Buss';
+       th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Console';
+       th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Use';
        th colspan => 2, 'Master';
       end;
       Tr;
-       th 'Buss';
-       th 'Console';
-       th 'Use';
        th 'Level';
        th 'State';
       end;

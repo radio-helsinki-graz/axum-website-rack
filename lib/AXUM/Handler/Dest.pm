@@ -160,20 +160,19 @@ sub dest {
   table;
    Tr; th colspan => 9, 'Destination configuration'; end;
    Tr;
-    th colspan => 5, '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
+    th colspan => 3, 'Output 1';
     th colspan => 2, 'Default signal';
-    th colspan => 2, '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'N-1 from';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
    end;
    Tr;
-    th 'Nr';
-    th 'Label';
-    th 'Output 1 (left)';
-    th 'Output 2 (right)';
+    th '1 (left)';
+    th '2 (right)';
     th 'Level';
     th 'From';
     th 'Routing';
-    th 'N-1 from';
-    th '';
    end;
 
    for my $d (@$dest) {

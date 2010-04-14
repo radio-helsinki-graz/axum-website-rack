@@ -54,12 +54,11 @@ sub extsrc {
     th colspan => 16, 'Extern source';
    end;
    Tr;
-    th colspan => 2, '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
     th colspan => 2, "Ext $_" for (1..8);
    end;
    Tr;
-    th 'Nr.';
-    th 'Label';
     for (1..8) {
       th 'Safe';
       th 'Source';

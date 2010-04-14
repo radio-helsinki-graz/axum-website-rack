@@ -123,18 +123,22 @@ sub consolepreset {
    end;
   end;
   table;
-   Tr; th colspan => 9, 'Console presets'; end;
-   Tr; th colspan => 2, ''; th colspan => 4, 'Console'; th colspan => 3, ''; end;
    Tr;
-    th 'Nr';
-    th 'Label';
+    th colspan => 9, 'Console presets';
+   end;
+   Tr;
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
+    th colspan => 4, 'Console';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Module\npreset";
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Mix/monitor\nbuss preset";
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
+   end;
+   Tr;
     th '1';
     th '2';
     th '3';
     th '4';
-    th 'Module preset';
-    th 'Mix/Monitor buss preset';
-    th '';
    end;
 
    for my $p (@$presets) {

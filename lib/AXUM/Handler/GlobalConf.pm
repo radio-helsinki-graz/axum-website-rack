@@ -4,7 +4,6 @@ package AXUM::Handler::GlobalConf;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
 
 
 YAWF::register(
@@ -155,25 +154,23 @@ sub ipclock
   $self->htmlHeader(page => 'ipclock', section => 'timezonde', title => "IP/Clock configuration");
 
   table;
-  Tr; th colspan => 2, "IP"; end;
-  Tr; th colspan => 2; i "(effective after reboot)"; end;
+  Tr; th colspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "IP\n"; i "(effective after reboot)"; end; end;
   Tr; th "Address"; td; _col 'net_ip', $ip; end; end;
   Tr; th "Subnet mask:"; td; _col 'net_mask', $mask; end; end;
   Tr; th "Gateway"; td; _col 'net_gw', $gw; end; end;
   Tr; th "DNS server"; td; _col 'net_dns', $dns; end; end;
   Tr class => 'empty'; th colspan => 2; end; end;
-  Tr; th colspan => 3, "Clock";
-  Tr; th colspan => 3, "(effective after reboot)"; end;
-  Tr; th rowspan => 2, "Current"; td colspan => 2, `date`;
+  Tr; th colspan => 3, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "Clock\n"; i "(effective after reboot)"; end; end;
+  Tr; th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Current"; td colspan => 2, `date`;
   Tr; td $sync_url; td "stratum: $sync_st"; end;
   Tr; th "time zone"; td colspan => 2; _col 'timezone', $tz; end;
-  Tr; th "NTP servers"; td colspan => 2; _col 'ntp_server', $ntp_server; end;
+  Tr; th style => 'height: 100px; background: url("/images/table_head_100.png")', "NTP Servers"; td colspan => 2; _col 'ntp_server', $ntp_server; end;
   Tr;
-   th "Set date/time";
+   th style => 'height: 40px; background: url("/images/table_head_40.png")', "Set date/time";
    td colspan => 2;
     input type=>'Text', name=>'datetime', size=>'25', maxlength=>'25', id=>'datetime', class => 'hidden';
     a href => "javascript: NewCssCal('datetime','yyyymmdd','dropdown',true,24,false)";
-     img width=>'16', height=>'16', alt=>'Pick a date', src=>'images/cal.gif';
+     img width=>'16', height=>'16', margin=>'0', alt=>'Pick a date', src=>'images/cal.gif';
     end;
    end;
   end;

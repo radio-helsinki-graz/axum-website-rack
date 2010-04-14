@@ -113,7 +113,7 @@ sub overview {
        Tr $p > $dspcount ? (class => 'inactive') : ();
         if ($src =~ /[a|c|e|g]/) {
           my $number = ((ord($src)-ord('a'))/2)+1;
-          th rowspan => 2, "Preset $number";
+          th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Preset $number";
         }
         th ((ord($src)&1) ? ('A'):('B'));
         for (@m) {
@@ -365,25 +365,30 @@ sub _routingtable {
    }
   end;
   Tr;
-   th '';
+   th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
    if ($type =~ /[A|B|C|D|E|F|G|H]/) {
-     th 'Override';
+     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Override\nmodule";
    } else {
-     th 'Use at';
+     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Use at\nsource select";
    }
-   th colspan => 4, '';
+   if ($type =~ /[A|B|C|D|E|F|G|H]/) {
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Level';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'State';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Pre/post';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Balance';
+   } else {
+    th colspan => 4, 'Default';
+   }
+
   end;
   Tr;
-   th '';
    if ($type =~ /[A|B|C|D|E|F|G|H]/) {
-     th 'module';
    } else {
-     th 'source select';
+     th 'Level';
+     th 'State';
+     th 'Pre/post';
+     th 'Balance';
    }
-   th 'Level';
-   th 'State';
-   th 'Pre/post';
-   th 'Balance';
   end;
   for my $b (@$bus) {
     next if !$mod->{$busses[$b->{number}-1].'_assignment'};
@@ -492,9 +497,18 @@ sub conf {
    end;
   end;
   table;
-   Tr; th colspan => 6, "Configuration for module $nr - Console $mod->{console}"; end;
-   Tr; th colspan => 3; th 'Processing'; th 'Routing'; th 'Ignore'; end; end;
-   Tr; th colspan => 2; th 'Source'; th 'Preset'; th 'Preset'; th 'Module state'; end; end;
+   Tr;
+    th colspan => 6, "Configuration for module $nr - Console $mod->{console}";
+   end;
+   Tr;
+    th colspan => 2, rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Preset';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Source';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Processing\npreset";
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Routing\npreset";
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Ignore\nmodule state";
+   end;
+   Tr;
+   end;
    for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
      my $u = 0;
      for my $b (@$bus) {
@@ -504,7 +518,7 @@ sub conf {
      Tr;
       if ($s =~ /[a|c|e|g]/) {
         my $number = ((ord($s)-ord('a'))/2)+1;
-        th rowspan => 2, "Preset $number";
+        th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")',"$number";
       }
       th ((ord($s)&1) ? ('A'):('B'));
       td; _col "source_$s", $mod, $src_lst; end;
@@ -525,13 +539,11 @@ sub conf {
   table;
    Tr; th colspan => 4, 'Processing'; end;
    Tr;
-    th; end;
-    th 'Use at';
-    th colspan => 2; end;
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Use at\nsource select";
+    th colspan => 2, 'Default';
    end;
    Tr;
-    th '';
-    th 'source select';
     th 'State';
     th 'Value';
    end;
