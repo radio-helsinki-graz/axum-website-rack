@@ -141,7 +141,7 @@ sub ipclock
 
   my $sync_url = 'none';
   my $sync_st = '16';
-  my $ntpq = `ntpq -p`;
+  my $ntpq = `ntpq -pn`;
   my @lines = split "\n", $ntpq;
 
   for (@lines)
