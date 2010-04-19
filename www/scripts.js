@@ -244,7 +244,6 @@ function conf_rtng(page, obj, item) {
     for(i=0; i<l.length; i++)
       val += ';'+l[i].name+'='+encodeURIComponent(l[i].options[l[i].selectedIndex].value);
     val = val.substr(1, val.length-1);
-    alert('/ajax/'+page+'/'+item.toUpperCase()+'?'+val);
     ajax('/ajax/'+page+'/'+item.toUpperCase()+'?'+val, function(h) {
       document.getElementById('routing_'+item+'_table_container').innerHTML = h.responseText;
       remove_input(input_obj);
