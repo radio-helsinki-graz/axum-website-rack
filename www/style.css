@@ -50,4 +50,6 @@ p.navigate a.sel { font-weight: bold; text-decoration: none; color: #000; paddin
 #input_obj select, #eq_table select { height: 20px; border: 1px solid #666; background-color: #eee }
 #input_obj option, #eq_table option { padding: 0 3px }
 #eq_table input.text { text-align: right }
+#routing_table input.text { text-align: right }
+#dyn_table input.text { text-align: right }
 

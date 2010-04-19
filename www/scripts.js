@@ -87,13 +87,19 @@ function click_input(e) {
 
 
 function conf_set(page, item, field, value, obj) {
+  conf_set_remove(page, item, field, value, obj, 1);
+}
+
+function conf_set_remove(page, item, field, value, obj, remove) {
   if(obj == null)
     obj = this;
   while((obj.nodeName.toLowerCase() != 'td') && (obj.nodeName.toLowerCase() != 'th'))
     obj = obj.parentNode;
   ajax('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value), function(h) {
     obj.innerHTML = h.responseText;
-    remove_input(input_obj);
+    if (remove) {
+      remove_input(input_obj);
+    }
     if(((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos'))
     {
       location.reload(true);
@@ -224,6 +230,29 @@ function conf_eq(page, obj, item) {
   if(!d) return false;
   d.innerHTML = document.getElementById('eq_table_container').innerHTML;
   d.getElementsByTagName('table')[0].id = 'eq_table';
+  return false;
+}
+
+function conf_rtng(page, obj, item) {
+  var d = create_input(obj, function (o) {
+    var val = '';
+    var l = o.getElementsByTagName('input');
+    for(var i=0; i<l.length; i++)
+      if(l[i].name)
+        val += ';'+l[i].name+'='+encodeURIComponent(l[i].value);
+    l = o.getElementsByTagName('select');
+    for(i=0; i<l.length; i++)
+      val += ';'+l[i].name+'='+encodeURIComponent(l[i].options[l[i].selectedIndex].value);
+    val = val.substr(1, val.length-1);
+    alert('/ajax/'+page+'/'+item.toUpperCase()+'?'+val);
+    ajax('/ajax/'+page+'/'+item.toUpperCase()+'?'+val, function(h) {
+      document.getElementById('routing_'+item+'_table_container').innerHTML = h.responseText;
+      remove_input(input_obj);
+    });
+  }, 0, obj.offsetWidth);
+  if(!d) return false;
+  d.innerHTML = document.getElementById('routing_'+item+'_table_container').innerHTML;
+  d.getElementsByTagName('table')[0].id = 'routing_table';
   return false;
 }
 

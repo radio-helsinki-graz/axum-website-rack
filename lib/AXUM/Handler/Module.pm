@@ -11,6 +11,7 @@ YAWF::register(
   qr{module/([1-9][0-9]*)} => \&conf,
   qr{ajax/module} => \&ajax,
   qr{ajax/module/([A|B|C|D|E|F|G|H])} => \&rpajax,
+  qr{ajax/module/([1-9][0-9]*)/([A|B|C|D|E|F|G|H])} => \&rptableajax,
   qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
   qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
   qr{ajax/module2console} => \&m2cajax,
@@ -216,7 +217,7 @@ sub _col {
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n =~ /.+_on_off/) {
-    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set_remove("%s", %d, "%s", "%s", this, 0)', $url, $number, $n, $v?0:1),
       $v ? 'on' : (class => 'off', 'off');
   }
   if($n eq 'lc_frequency') {
@@ -241,21 +242,22 @@ sub _col {
     }
   }
   if($n =~ /pre_post$/) {
-    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set_remove("%s", %d, "%s", "%s", this, 0)', $url, $number, $n, $v?0:1),
       !$v ? (class => 'off', 'post') : 'pre';
   }
   if($n =~ /balance$/) {
     $v = sprintf '%.0f', $v/512;
-    a href => '#', onclick => sprintf('return conf_select("%s", %d, "%s", %d, this, "balance_items")',
-      $url, $number, $n, $v), $v == 1 ? (class => 'off') : (), $balance[$v];
+    my $new_v = $v+1;
+    $new_v = 0 if ($new_v > 2);
+    a href => '#', onclick => sprintf('return conf_set_remove("%s", %d, "%s", %d, this, 0)', $url, $number, $n, $new_v), $v == 1 ? (class => 'off') : (), $balance[$v];
   }
   if(($n =~ /.+_use_preset$/) or ($n =~ /^use_/)) {
-    a href => '#', onclick => sprintf('return conf_set("%s", %d, "%s", "%s", this)', $url, $number , $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set_remove("%s", %d, "%s", "%s", this, 0)', $url, $number , $n, $v?0:1),
       $v ? 'yes' : (class => 'off', 'no');
   }
   if ($n =~ /^m2c_(\w+)/) {
     lit '&raquo;';
-    a href => '#', onclick => sprintf('return conf_set("module2console", %d, "%s", 1, this)', $number, $1), class => 'off', "To all console $d->{console} modules";
+    a href => '#', onclick => sprintf('return conf_set_remove("module2console", %d, "%s", 1, this, 0)', $number, $1), class => 'off', "To all console $d->{console} modules";
   }
 }
 
@@ -395,10 +397,24 @@ sub _routingtable {
     Tr;
      th $b->{label};
      td; _col $busses[$b->{number}-1].'_use_preset', $mod, $type; end;
-     td; _col $busses[$b->{number}-1].'_level', $mod, $type; end;
+
+     if ($type =~ /[A|B|C|D|E|F|G|H]/) {
+       td;
+        input type => 'text', class => 'text', size => 4, name => $busses[$b->{number}-1].'_level', value => $mod->{$busses[$b->{number}-1].'_level'}, 'dB';
+       end;
+     } else {
+       td; _col $busses[$b->{number}-1].'_level', $mod, $type; end;
+     }
      td; _col $busses[$b->{number}-1].'_on_off', $mod, $type; end;
      td; _col $busses[$b->{number}-1].'_pre_post', $mod, $type; end;
      td; _col $busses[$b->{number}-1].'_balance', $mod, $type; end;
+    end;
+  }
+  if ($type =~ /[A|B|C|D|E|F|G|H]/) {
+    Tr;
+     td colspan => 6;
+      input type => 'submit', style => 'float: right', class => 'button', value => 'Save';
+     end;
     end;
   }
   end;
@@ -465,11 +481,6 @@ sub conf {
 
   $self->htmlHeader(page => 'module', section => $nr, title => "Module $nr configuration");
   $self->htmlSourceList($pos_lst, 'matrix_sources');
-  div id => 'balance_items', class => 'hidden';
-   Select;
-    option value => $_, $balance[$_] for (0..$#balance);
-   end;
-  end;
   div id => 'src_preset_list', class => 'hidden';
     Select;
       option value => 0, 'none';
@@ -496,6 +507,13 @@ sub conf {
       for (0..3);
    end;
   end;
+
+  for my $s ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h') {
+    div id => "routing_${s}_table_container", class => 'hidden';
+     _routingtable($rp{$s}, $bus, "\u$s");
+    end;
+  }
+
   table;
    Tr;
     th colspan => 6, "Configuration for module $nr - Console $mod->{console}";
@@ -519,20 +537,14 @@ sub conf {
       if ($s =~ /[a|c|e|g]/) {
         my $number = ((ord($s)-ord('a'))/2)+1;
         th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")',"$number";
-      }
-      th ((ord($s)&1) ? ('A'):('B'));
-      td; _col "source_$s", $mod, $src_lst; end;
-      td; _col "source_${s}_preset", $mod, $src_preset_lst; end;
-      td; a href => '#', onclick => 'this.innerHTML = "-"; return toggle_visibility("routing_'.$s.'", this)', ($u == 0) ? (class => 'off', 'none') : ('active'); end;
-      if ($s eq 'a') {
-       td rowspan=>8; _col 'overrule_active', $mod; end;
-      }
-      Tr id => "routing_$s", class => 'hidden';
-      td '';
-      td colspan => 3, style => 'padding: 10px';
-       _routingtable($rp{$s}, $bus, "\u$s");
-      end;
-     end;
+     }
+     th ((ord($s)&1) ? ('A'):('B'));
+     td; _col "source_$s", $mod, $src_lst; end;
+     td; _col "source_${s}_preset", $mod, $src_preset_lst; end;
+     td; a href => "#", onclick => "return conf_rtng(\"module/$nr\", this, \"$s\")", ($u == 0) ? (class => 'off', 'none') : ('active'); end;
+     if ($s eq 'a') {
+      td rowspan=>8; _col 'overrule_active', $mod; end;
+     }
    }
    Tr; td colspan => 4, style => 'background: none', ''; end;
   end;
@@ -724,6 +736,33 @@ sub rpajax {
 
   $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_preset = ?', \%set, $f->{item}, $type) if keys %set;
   _col $f->{field}, { mod_number => $f->{item}, $f->{field} => $f->{$f->{field}} }, $type;
+}
+
+sub rptableajax {
+  my($self, $nr, $type) = @_;
+
+  my $f = $self->formValidate(
+    map +(
+      { name => "${_}_level", required => 0 },
+    ), @busses
+  );
+  return 404 if $f->{_err};
+
+  my %set;
+  defined $f->{$_} and ($set{"$_ = ?"} = $f->{$_})
+    for(map +("${_}_level"), @busses);
+
+  $self->dbExec('UPDATE routing_preset !H WHERE mod_number = ? AND mod_preset = ?', \%set, $nr, $type) if keys %set;
+
+  my $rp_bsel;
+  $rp_bsel .= "r.${_}_use_preset, r.${_}_level, r.${_}_on_off, r.${_}_pre_post, r.${_}_balance, m.${_}_assignment, "
+    for (@busses);
+  $rp_bsel .= "false";
+  my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
+  my $rp = $self->dbRow("SELECT r.mod_number, r.mod_preset, m.console, m.number, !s FROM routing_preset r
+                          JOIN module_config m ON m.number = mod_number
+                          WHERE mod_number = ? AND mod_preset = '\u$type'", $rp_bsel, $nr);
+  _routingtable($rp, $bus, $type);
 }
 
 sub m2cajax {
