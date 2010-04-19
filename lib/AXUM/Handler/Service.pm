@@ -29,6 +29,7 @@ sub service {
    Tr; th 5; td; a href => '/service/predefined', 'Stored configurations'; end; end;
    Tr; th 6; td; a href => '/service/functions', 'Engine functions'; end; end;
    Tr; th 7; td; a href => '/service/versions?pkg=axum', 'Package versions'; end; end;
+   Tr; th 8; td; a href => '#', onclick => "window.location = 'http://'+window.location.host+':6565'", 'Download backup'; end; end;
   end;
   $self->htmlFooter;
 }
