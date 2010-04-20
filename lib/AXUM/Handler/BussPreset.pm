@@ -157,7 +157,7 @@ sub busspreset_overview {
    }
   end;
   br; br;
-  a href => '#', onclick => 'return conf_addpreset(this)', 'Create new buss preset';
+  a href => '#', onclick => 'return conf_addpreset(this, "Create")', 'Create new buss preset';
 
   $self->htmlFooter;
 }

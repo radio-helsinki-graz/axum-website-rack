@@ -168,7 +168,7 @@ sub consolepreset {
    }
   end;
   br; br;
-  a href => '#', onclick => 'return conf_addpreset(this)', 'Create new console preset';
+  a href => '#', onclick => 'return conf_addpreset(this, "Create")', 'Create new console preset';
 
   $self->htmlFooter;
 }
