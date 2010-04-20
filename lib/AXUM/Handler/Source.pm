@@ -4,6 +4,7 @@ package AXUM::Handler::Source;
 use strict;
 use warnings;
 use YAWF ':html';
+use Data::Dumper;
 
 
 YAWF::register(
@@ -71,12 +72,15 @@ sub _create_source {
   my($self, $chan) = @_;
 
   my $f = $self->formValidate(
-    { name => 'input1', enum => [ map "$_->{addr}_$_->{channel}", @$chan ] },
-    { name => 'input2', enum => [ map "$_->{addr}_$_->{channel}", @$chan ] },
+    { name => 'input1', enum => [ map("$_->{addr}_$_->{channel}", @$chan), "0_0" ] },
+    { name => 'input2', enum => [ map("$_->{addr}_$_->{channel}", @$chan), "0_0" ] },
     { name => 'label', minlength => 1, maxlength => 32 },
   );
   die "Invalid input" if $f->{_err};
   my @inputs = (split(/_/, $f->{input1}), split(/_/, $f->{input2}));
+
+  $inputs[0] = 'NULL' if ($inputs[0] == 0);
+  $inputs[2] = 'NULL' if ($inputs[2] == 0);
 
   # get new free source number
   my $num = $self->dbRow(q|SELECT gen
@@ -85,9 +89,8 @@ sub _create_source {
     LIMIT 1|
   )->{gen};
   # insert row
-  $self->dbExec(q|
-    INSERT INTO src_config (number, label, input1_addr, input1_sub_ch, input2_addr, input2_sub_ch) VALUES (!l)|,
-    [ $num, $f->{label}, @inputs ]);
+  $self->dbExec("INSERT INTO src_config (number, label, input1_addr, input1_sub_ch, input2_addr, input2_sub_ch)
+                 VALUES ($num, '$f->{label}', $inputs[0], $inputs[1], $inputs[2], $inputs[3])");
   $self->dbExec("SELECT src_config_renumber()");
   $self->resRedirect('/source', 'post');
 }
