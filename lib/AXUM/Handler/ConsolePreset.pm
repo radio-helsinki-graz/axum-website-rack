@@ -52,6 +52,9 @@ sub _col {
    a href => '#', onclick => sprintf('return conf_set("consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
      $v ? 'y' : (class => 'off', 'n');
   }
+  if ($n =~ /recall_time$/) {
+    a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v), "$v Sec";
+  }
 }
 
 sub _create_console_preset {
@@ -89,7 +92,7 @@ sub consolepreset {
     $self->dbExec("SELECT console_preset_renumber()");
     return $self->resRedirect('/consolepreset', 'temp');
   }
-  my $presets = $self->dbAll(q|SELECT pos, number, label, console1, console2, console3, console4, mod_preset, buss_preset
+  my $presets = $self->dbAll(q|SELECT pos, number, label, console1, console2, console3, console4, mod_preset, buss_preset, safe_recall_time, forced_recall_time
     FROM console_preset ORDER BY pos|);
 
   my $buss_preset = $self->dbAll(q|SELECT pos, number, label FROM buss_preset ORDER BY pos|);
@@ -124,7 +127,7 @@ sub consolepreset {
   end;
   table;
    Tr;
-    th colspan => 9, 'Console presets';
+    th colspan => 11, 'Console presets';
    end;
    Tr;
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
@@ -132,6 +135,7 @@ sub consolepreset {
     th colspan => 4, 'Console';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Module\npreset";
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Mix/monitor\nbuss preset";
+    th colspan => 2, 'Recall time';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
    end;
    Tr;
@@ -139,6 +143,8 @@ sub consolepreset {
     th '2';
     th '3';
     th '4';
+    th 'safe';
+    th 'forced';
    end;
 
    for my $p (@$presets) {
@@ -151,6 +157,8 @@ sub consolepreset {
       td; _col 'console4', $p; end;
       td; _col 'mod_preset', $p; end;
       td; _col 'buss_preset', $p, $buss_preset; end;
+      td; _col 'safe_recall_time', $p; end;
+      td; _col 'forced_recall_time', $p; end;
       td;
        a href => '/consolepreset?del='.$p->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
@@ -175,6 +183,8 @@ sub ajax {
     { name => 'pos', required => 0, template => 'int' },
     { name => 'mod_preset', required => 0, regex => [ qr/[NULL|A|B|C|D|E|F|G|H]/, 0 ] },
     { name => 'buss_preset', required => 0, regex => [ qr/[NULL|\d{1,4}]/, 0] },
+    { name => 'safe_recall_time', required => 0, template => 'int' },
+    { name => 'forced_recall_time', required => 0, template => 'int' },
     (map +{ name => "console$_", required => 0, enum => [0,1] }, 1..4),
   );
   return 404 if $f->{_err};
@@ -192,7 +202,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_}))
-      for(qw|label console1 console2 console3 console4 mod_preset buss_preset|);
+      for(qw|label console1 console2 console3 console4 mod_preset buss_preset safe_recall_time forced_recall_time|);
     $self->dbExec('UPDATE console_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
     _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
       ($f->{field} eq 'buss_preset') ? ($self->dbAll(q|SELECT number, label FROM buss_preset ORDER BY pos|)) : ();
