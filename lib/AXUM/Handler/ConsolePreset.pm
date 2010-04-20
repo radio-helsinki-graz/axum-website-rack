@@ -183,8 +183,8 @@ sub ajax {
     { name => 'pos', required => 0, template => 'int' },
     { name => 'mod_preset', required => 0, regex => [ qr/[NULL|A|B|C|D|E|F|G|H]/, 0 ] },
     { name => 'buss_preset', required => 0, regex => [ qr/[NULL|\d{1,4}]/, 0] },
-    { name => 'safe_recall_time', required => 0, template => 'int' },
-    { name => 'forced_recall_time', required => 0, template => 'int' },
+    { name => 'safe_recall_time', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
+    { name => 'forced_recall_time', required => 0, regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ] },
     (map +{ name => "console$_", required => 0, enum => [0,1] }, 1..4),
   );
   return 404 if $f->{_err};
