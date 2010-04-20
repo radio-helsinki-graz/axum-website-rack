@@ -470,10 +470,39 @@ sub setpre {
   #Insert all functions
   $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func)
                  SELECT a.addr, p.object, (p.func).type, CASE
-                   WHEN (p.func).type = 5 THEN ((SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset}))-1
-                   WHEN (p.func).type = 6 THEN ((SELECT number FROM dest_config WHERE pos = ((func).seq)+$f->{offset}))-1
-                   WHEN (p.func).type = 4 THEN (p.func).seq
-                   ELSE (p.func).seq+$f->{offset} END AS seq,
+                   WHEN (p.func).type = 0 THEN (SELECT CASE
+                                                       WHEN ((p.func).seq+$f->{offset})<0 THEN 0
+                                                       WHEN ((p.func).seq+$f->{offset})>127 THEN 127
+                                                       ELSE ((p.func).seq+$f->{offset})
+                                                       END)
+                   WHEN (p.func).type = 1 THEN (SELECT CASE
+                                                       WHEN ((p.func).seq+$f->{offset})<0 THEN 0
+                                                       WHEN ((p.func).seq+$f->{offset})>15 THEN 15
+                                                       ELSE ((p.func).seq+$f->{offset})
+                                                       END)
+                   WHEN (p.func).type = 2 THEN (SELECT CASE
+                                                       WHEN ((p.func).seq+$f->{offset})<0 THEN 0
+                                                       WHEN ((p.func).seq+$f->{offset})>15 THEN 15
+                                                       ELSE ((p.func).seq+$f->{offset})
+                                                       END)
+                   WHEN (p.func).type = 5 THEN (SELECT CASE
+                                                       WHEN EXISTS (SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset}) THEN
+                                                         (SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset})-1
+                                                       WHEN EXISTS (SELECT number FROM src_config ORDER BY number LIMIT 1) THEN
+                                                         (SELECT number FROM src_config ORDER BY number LIMIT 1)-1
+                                                       ELSE
+                                                         0
+                                                       END)
+                   WHEN (p.func).type = 6 THEN (SELECT CASE
+                                                       WHEN EXISTS (SELECT number FROM dest_config WHERE pos = ((func).seq)+$f->{offset}) THEN
+                                                         (SELECT number FROM dest_config WHERE pos = ((func).seq)+$f->{offset})-1
+                                                       WHEN EXISTS (SELECT number FROM dest_config ORDER BY number LIMIT 1) THEN
+                                                         (SELECT number FROM dest_config ORDER BY number LIMIT 1)-1
+                                                       ELSE
+                                                         0
+                                                       END)
+                   ELSE 0
+                   END AS seq,
                    (func).func
                  FROM predefined_node_config p
                  JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
