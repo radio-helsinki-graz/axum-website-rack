@@ -14,6 +14,7 @@ YAWF::register(
   qr{ajax/module/([1-9][0-9]*)/([A|B|C|D|E|F|G|H])} => \&rptableajax,
   qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
   qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
+  qr{ajax/module/([1-9][0-9]*)/startup} => \&startupajax,
   qr{ajax/module2console} => \&m2cajax,
 );
 
@@ -612,6 +613,15 @@ sub conf {
    Tr; td colspan => 3, style => 'background: none', ''; end;
   end;
   _routingtable($mod, $bus, '');
+  table;
+   Tr; td style => 'background: none', ''; end;
+   Tr;
+    td style => 'background: none';
+     input type => 'button', onclick => "conf_set_remove('module/$nr/startup', null, null, null, this);", value => "Set module $nr to programmed startup state";
+    end;
+   end;
+  end;
+
 
   $self->htmlFooter;
 }
@@ -826,6 +836,14 @@ sub m2cajax {
   }
 
   a href => '#', class => 'off', "Done";
+}
+
+sub startupajax {
+  my($self, $nr) = @_;
+
+  $self->dbExec('INSERT INTO recent_changes (change, arguments) VALUES(\'set_module_to_startup_state\', ?)', $nr);
+
+  txt "Done $nr";
 }
 
 
