@@ -96,6 +96,8 @@ sub _create_dest {
   $self->dbExec(sprintf("INSERT INTO dest_config (number, label, output1_addr, output1_sub_ch, output2_addr, output2_sub_ch) VALUES (%d, '%s', %s, %d, %s, %d)",
     $num, $f->{label}, $outputs[0], $outputs[1], $outputs[2], $outputs[3]));
   $self->dbExec("SELECT dest_config_renumber();");
+
+  $self->resRedirect('/dest', 'post');
 }
 
 
