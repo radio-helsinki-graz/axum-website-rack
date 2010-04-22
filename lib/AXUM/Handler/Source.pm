@@ -14,6 +14,9 @@ YAWF::register(
   qr{ajax/source/([1-9][0-9]*)/eq} => \&eqajax,
 );
 
+my @start_trigger_types = ('Dedicated', 'Module fader on', 'Module on', 'Module fader & on active');
+my @stop_trigger_types = ('Dedicated', 'Module fader off', 'Module off', 'Module fader & on active');
+
 sub _channels {
   return shift->dbAll(q|SELECT s.addr, a.active, s.slot_nr, g.channel, a.name
     FROM slot_config s
@@ -66,6 +69,12 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "src_preset_list")', $d->{number}, $n, $v),
       !$v ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
+  if ($n eq 'start_trigger') {
+    a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "start_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $start_trigger_types[$v];
+  }
+  if ($n eq 'stop_trigger') {
+    a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "stop_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $stop_trigger_types[$v];
+  }
 }
 
 sub _create_source {
@@ -117,7 +126,7 @@ sub source {
   my @cols = ((map "redlight$_", 1..8), (map "monitormute$_", 1..16));
   my $src = $self->dbAll(q|SELECT pos, number, label, input1_addr, input1_sub_ch, input2_addr,
     input2_sub_ch, input_phantom, input_pad, input_gain,
-    default_src_preset,
+    default_src_preset, start_trigger, stop_trigger,
     !s FROM src_config ORDER BY pos|, join ', ', @cols);
 
   my $src_preset_lst = $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|);
@@ -153,6 +162,18 @@ sub source {
     option value => $max_pos+1, "last";
    end;
   end;
+  # create list of start triggers for javascript
+  div id => 'start_triggers', class => 'hidden';
+   Select;
+    option value => $_, $start_trigger_types[$_] for (0..3);
+   end;
+  end;
+  # create list of stop triggers for javascript
+  div id => 'stop_triggers', class => 'hidden';
+   Select;
+    option value => $_, $stop_trigger_types[$_] for (0..3);
+   end;
+  end;
 
   table;
    Tr; th colspan => 34, 'Source configuration'; end;
@@ -161,6 +182,7 @@ sub source {
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
     th colspan => 5, 'Input';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Processing\npreset";
+    th colspan => 2, 'Trigger';
     th colspan => 8, 'Redlight';
     th colspan => 16, 'Monitor destination mute/dim';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
@@ -171,6 +193,8 @@ sub source {
     th 'Phantom';
     th 'Pad';
     th 'Gain';
+    th 'Start';
+    th 'Stop';
     th $_ for (1..8);
     th abbr => $_->{label}, $_->{active} ? ():(class => 'inactive'), id => "exp_monitormute$_->{number}", $_->{number}%10
       for (@$mb);
@@ -207,6 +231,8 @@ sub source {
         }
       end;
       td; _col 'default_src_preset', $s, $src_preset_lst; end;
+      td; _col 'start_trigger', $s; end;
+      td; _col 'stop_trigger', $s; end;
       for (map "redlight$_", 1..8) {
         td; _col $_, $s; end;
       }
@@ -268,6 +294,8 @@ sub ajax {
     { name => 'input1', required => 0, regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
     { name => 'input2', required => 0, regex => [ qr/[0-9]+_[0-9]+/, 0 ] },
     { name => 'default_src_preset', required => 0, 'int' },
+    { name => 'start_trigger', required => 0, enum => [0,1,2,3] },
+    { name => 'stop_trigger', required => 0, enum => [0,1,2,3] },
     (map +{ name => "redlight$_", required => 0, enum => [0,1] }, 1..8),
     (map +{ name => "monitormute$_", required => 0, enum => [0,1] }, 1..16),
     { name => 'pos', required => 0, template => 'int' },
@@ -289,7 +317,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ((($_ =~ /default_src_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
-      for(qw|label input_phantom input_pad input_gain default_src_preset|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
+      for(qw|label input_phantom input_pad input_gain default_src_preset start_trigger stop_trigger|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
     defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = '.(($1 == 0)?('NULL'):('?')).', '.$_.'_sub_ch = ?'} = [ ($1 == 0)?():($1), $2 ])
       for('input1', 'input2');
 
