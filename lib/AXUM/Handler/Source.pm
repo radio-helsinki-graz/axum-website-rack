@@ -15,7 +15,7 @@ YAWF::register(
 );
 
 my @start_trigger_types = ('Dedicated', 'Module fader on', 'Module on', 'Module fader & on active');
-my @stop_trigger_types = ('Dedicated', 'Module fader off', 'Module off', 'Module fader & on active');
+my @stop_trigger_types = ('Dedicated', 'Module fader off', 'Module off', 'Module fader & on inactive');
 
 sub _channels {
   return shift->dbAll(q|SELECT s.addr, a.active, s.slot_nr, g.channel, a.name
