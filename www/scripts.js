@@ -100,7 +100,7 @@ function conf_set_remove(page, item, field, value, obj, remove) {
     if (remove) {
       remove_input(input_obj);
     }
-    if(((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos'))
+    if((((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account'))
     {
       location.reload(true);
     }
