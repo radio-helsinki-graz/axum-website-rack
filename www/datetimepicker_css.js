@@ -990,7 +990,6 @@ Calendar.prototype.FormatDate=FormatDate;
 function closewin(id) {
    var CalId = document.getElementById(id);
 
-   CalId.focus();
    winCal.style.visibility='hidden';
  }
 
