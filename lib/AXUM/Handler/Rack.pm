@@ -29,8 +29,8 @@ sub listui {
     (SELECT COUNT(*) FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major) AS objects,
     (SELECT number FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major AND t.description = \'Slot number\') AS slot_obj,
     (SELECT name FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_name,
-    (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr) AS config_cnt,
-    (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr) AS default_cnt,
+    (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr AND a.firm_major = n.firm_major) AS config_cnt,
+    (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr AND a.firm_major = d.firm_major) AS default_cnt,
     (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cfg_cnt,
     (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt
     FROM slot_config s
@@ -95,8 +95,8 @@ sub list {
 
   my $cards = $self->dbAll('SELECT a.addr, a.name, s.slot_nr, s.input_ch_cnt, s.output_ch_cnt, a.active,
     (SELECT COUNT(*) FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major) AS objects,
-    (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr) AS config_cnt,
-    (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr) AS default_cnt,
+    (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr AND a.firm_major = n.firm_major) AS config_cnt,
+    (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr AND a.firm_major = d.firm_major) AS default_cnt,
     (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cfg_cnt,
     (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt
     FROM slot_config s JOIN addresses a ON a.addr = s.addr ORDER BY s.slot_nr');
@@ -196,8 +196,8 @@ sub conf {
       SELECT t.number, t.description, t.sensor_type, t.actuator_type, t.actuator_def, d.data, c.func
       FROM templates t
       JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
-      LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object)
-      LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object)
+      LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object AND t.firm_major = d.firm_major)
+      LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
       WHERE a.addr = ? ORDER BY t.number',
     oct "0x$addr"
   );
@@ -338,11 +338,11 @@ sub setfunc {
   my($f1, $f2, $f3) = split /,/, $f->{function};
 
   if($f1 == -1) {
-    $self->dbExec('DELETE FROM node_config WHERE addr = ? AND object = ?', oct "0x$f->{addr}", $f->{nr});
+    $self->dbExec('DELETE FROM node_config WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ? )', oct "0x$f->{addr}", $f->{nr}, oct "0x$f->{addr}");
   } else {
-      $self->dbExec('UPDATE node_config SET func = (?, ?, ?) WHERE addr = ? AND object = ?', $f1, $f2, $f3, oct "0x$f->{addr}", $f->{nr})
+      $self->dbExec('UPDATE node_config SET func = (?, ?, ?) WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)', $f1, $f2, $f3, oct "0x$f->{addr}", $f->{nr}, oct "0x$f->{addr}")
     ||
-      $self->dbExec('INSERT INTO node_config (addr, object, func) VALUES (?, ?, (?,?,?))', oct "0x$f->{addr}", $f->{nr}, $f1, $f2, $f3);
+      $self->dbExec('INSERT INTO node_config (addr, object, func, firm_major) VALUES (?, ?, (?,?,?), (SELECT a.firm_major FROM addresses a WHERE a.addr = ?))', oct "0x$f->{addr}", $f->{nr}, $f1, $f2, $f3, oct "0x$f->{addr}");
   }
   _funcname $self, $f->{addr}, $f->{nr}, $f1, $f2, $f3, $f->{sensor}, $f->{actuator},
     [ map $_->{label}, @{$self->dbAll('SELECT label FROM buss_config ORDER BY number')} ];
@@ -365,7 +365,7 @@ sub setdefault {
       SELECT t.number, t.actuator_type, t.actuator_def, d.data
       FROM templates t
       JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
-      LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object)
+      LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object AND a.firm_major = d.firm_major)
       WHERE a.addr = ? AND t.number = ?',
     oct "0x$f->{field}", $f->{item}
   );
@@ -379,14 +379,14 @@ sub setdefault {
   if($v eq '') {
     if(defined $obj->{data})
     {
-      $self->dbExec('DELETE FROM defaults WHERE addr = ? AND object = ?', oct "0x$f->{field}", $f->{item});
+      $self->dbExec('DELETE FROM defaults WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)', oct "0x$f->{field}", $f->{item}, oct "0x$f->{field}");
       $obj->{data} = '';
     }
   } else {
     $self->dbExec(defined $obj->{data}
-      ? 'UPDATE defaults SET data = ? WHERE addr = ? AND object = ?'
-      : 'INSERT INTO defaults (data, addr, object) VALUES (?, ?, ?)',
-      $dat, oct "0x$f->{field}", $f->{item}
+      ? 'UPDATE defaults SET data = ? WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)'
+      : 'INSERT INTO defaults (data, addr, object, firm_major) VALUES (?, ?, ?, (SELECT a.firm_major FROM addresses a WHERE a.addr = ?))',
+      $dat, oct "0x$f->{field}", $f->{item}, oct "0x$f->{field}"
     );
     $obj->{data} = $dat;
   }
@@ -415,13 +415,13 @@ sub ajax {
                                 WHEN (func).type = 6 THEN (SELECT pos FROM dest_config WHERE number = ((func).seq+1))
                                ELSE (func).seq
                                END AS seq,
-                               (func).func FROM node_config WHERE addr = ?", oct "0x$f->{item}");
+                               (func).func FROM node_config WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
   for my $o (@$obj_cfgs) {
     my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}, $o->{func});
     $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func);
   }
 
-  my $obj_dflts = $self->dbAll("SELECT object, data FROM defaults WHERE addr = ?", oct "0x$f->{item}");
+  my $obj_dflts = $self->dbAll("SELECT object, data FROM defaults WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
   for my $o (@$obj_dflts) {
     $self->dbExec("INSERT INTO predefined_node_defaults (man_id, prod_id, firm_major, cfg_name, object, data) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $o->{data});
   }
@@ -468,7 +468,7 @@ sub setpre {
   $self->dbExec("DELETE FROM defaults WHERE addr = ?", oct "0x$f->{addr}");
 
   #Insert all functions
-  $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func)
+  $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func, firm_major)
                  SELECT a.addr, p.object, (p.func).type, CASE
                    WHEN (p.func).type = 0 THEN (SELECT CASE
                                                        WHEN ((p.func).seq+$f->{offset})<0 THEN 0
@@ -503,13 +503,13 @@ sub setpre {
                                                        END)
                    ELSE 0
                    END AS seq,
-                   (func).func
+                   (func).func, p.firm_major
                  FROM predefined_node_config p
                  JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
                  WHERE a.addr = ? AND p.cfg_name = ?", oct "0x$f->{addr}", $f->{predefined});
 
-  $self->dbExec("INSERT INTO defaults (addr, object, data)
-                 SELECT a.addr, d.object, d.data
+  $self->dbExec("INSERT INTO defaults (addr, object, data, firm_major)
+                 SELECT a.addr, d.object, d.data, d.firm_major
                  FROM predefined_node_defaults d
                  JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major
                  WHERE a.addr = ? AND d.cfg_name = ?", oct "0x$f->{addr}", $f->{predefined});

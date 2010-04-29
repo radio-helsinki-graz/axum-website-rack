@@ -56,8 +56,8 @@ sub list {
   }
 
   my $cards = $self->dbAll('SELECT a.addr, a.id, a.name, a.active, a.engine_addr, a.parent, a.firm_major, b.name AS parent_name,
-    (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr) AS config_cnt,
-    (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr) AS default_cnt,
+    (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr AND a.firm_major = n.firm_major) AS config_cnt,
+    (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr AND a.firm_major = d.firm_major) AS default_cnt,
     (SELECT COUNT(*) FROM addresses b WHERE (b.id).man = (a.id).man AND (b.id).prod = (a.id).prod AND b.firm_major = a.firm_major AND b.active AND NOT a.active) AS conf_change,
     (SELECT COUNT(*) FROM templates t WHERE (a.id).man = t.man_id AND (a.id).prod = t.prod_id AND a.firm_major = t.firm_major) AS temp_cnt
     FROM addresses a
