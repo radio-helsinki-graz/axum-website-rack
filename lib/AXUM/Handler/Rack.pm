@@ -279,6 +279,7 @@ sub funclist {
   if($func[0]) {
     div id => 'func_0'; Select;
      option value => $_-1, $dspcount < $_/32 ? (class => 'off') : (), $_ for (1..128);
+     option value => $_, 'Console '.($_-127).' select' for (128..131);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[0]};
     end; end;
@@ -287,6 +288,7 @@ sub funclist {
   if($func[1]) {
     div id => 'func_1'; Select;
      option value => $_, $buss[$_] for (0..$#buss);
+     option value => $_, 'Console '.($_-15).' select' for (16..19);
     end; Select;
      option value => $_->{func}, $_->{name} for (@{$func[1]});
     end; end;
@@ -295,6 +297,7 @@ sub funclist {
   if($func[2]) {
     div id => 'func_2'; Select;
      option value => $_, $dspcount < ($_+1)/4 ? (class => 'off') : (), $mbuss[$_] for (0..$#mbuss);
+     option value => $_, 'Console '.($_-15).' select' for (16..19);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[2]};
     end; end;
@@ -309,6 +312,7 @@ sub funclist {
   if($func[5]) {
     div id => 'func_5'; Select;
      option value => $_->{number}-1, $_->{label} for @$src;
+     option value => $_, 'Console '.($_-1279).' select' for (1280..1283);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[5]};
     end; end;
@@ -317,6 +321,7 @@ sub funclist {
   if($func[6]) {
     div id => 'func_6'; Select;
      option value => $_->{number}-1, $_->{label} for @$dest;
+     option value => $_, 'Console '.($_-1279).' select' for (1280..1283);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[6]};
     end; end;
