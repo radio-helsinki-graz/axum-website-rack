@@ -122,23 +122,30 @@ sub listpre {
 
   if(!$f->{_err}) {
     $f->{del} ? ($self->dbExec('DELETE FROM predefined_node_config WHERE cfg_name = ? AND man_id = ? AND prod_id = ? AND firm_major = ?', $f->{del}, $f->{man}, $f->{prod}, $f->{firm})) : ();
+    $f->{del} ? ($self->dbExec('DELETE FROM predefined_node_defaults WHERE cfg_name = ? AND man_id = ? AND prod_id = ? AND firm_major = ?', $f->{del}, $f->{man}, $f->{prod}, $f->{firm})) : ();
     $f->{del} ? (return $self->resRedirect('/service/predefined', 'temp')) : ();
   }
 
-  my $pre_cfg = $self->dbAll("SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) AS cnt
-                              FROM predefined_node_config p
-                              GROUP BY p.cfg_name, p.man_id, p.prod_id, p.firm_major
-                              ORDER BY p.man_id, p.prod_id, p.firm_major");
+  my $pre_cfg = $self->dbAll("((SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) as cfg_cnt, (SELECT COUNT(*) FROM predefined_node_defaults d WHERE p.cfg_name=d.cfg_name AND p.man_id=d.man_id AND p.prod_id=d.prod_id AND p.firm_major=d.firm_major) AS cnt
+                                FROM predefined_node_config p
+                                GROUP BY p.cfg_name, p.man_id, p.prod_id, p.firm_major
+                                ORDER BY p.man_id, p.prod_id, p.firm_major)
+                               UNION
+                                (SELECT d.cfg_name, d.man_id, d.prod_id, d.firm_major, (SELECT COUNT(*) FROM predefined_node_config p WHERE p.cfg_name=d.cfg_name AND p.man_id=d.man_id AND p.prod_id=d.prod_id AND p.firm_major=d.firm_major) AS cfg_cnt, COUNT(*) AS cnt
+                                 FROM predefined_node_defaults d
+                                 GROUP BY d.cfg_name, d.man_id, d.prod_id, d.firm_major
+                                 ORDER BY d.man_id, d.prod_id, d.firm_major))");
 
   $self->htmlHeader(title => 'MambaNet predefined configurations', page => 'service', section => 'predefined');
   table;
-   Tr; th colspan => 6, 'MambaNet predefined configuration'; end;
+   Tr; th colspan => 7, 'MambaNet predefined configuration'; end;
    Tr;
     th 'ManID';
     th 'ProdID';
     th 'Major';
     th 'Name';
-    th 'count';
+    th 'Config';
+    th 'Defaults';
     th '';
    end;
    for my $p (@$pre_cfg) {
@@ -147,6 +154,7 @@ sub listpre {
       td sprintf("%04X", $p->{prod_id});
       td $p->{firm_major};
       td $p->{cfg_name};
+      td $p->{cfg_cnt};
       td $p->{cnt};
       td;
        a href => '/service/predefined?del='.uri_escape_utf8($p->{cfg_name}).";man=".$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';

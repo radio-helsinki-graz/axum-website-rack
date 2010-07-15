@@ -441,15 +441,23 @@ sub loadpre {
   );
   return 404 if $f->{_err};
 
-  my $pre_cfg = $self->dbAll("SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) AS cnt_func,
-                              (SELECT COUNT(*) FROM predefined_node_defaults d
+  my $pre_cfg = $self->dbAll("(SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) AS cnt_func, (SELECT COUNT(*) FROM predefined_node_defaults d
+                                                                                                            JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major
+                                                                                                            WHERE a.addr = ? AND p.cfg_name = d.cfg_name) AS cnt_def
+                                FROM predefined_node_config p
+                                JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
+                                WHERE a.addr = ?
+                                GROUP BY p.cfg_name, p.man_id, p.prod_id, p.firm_major
+                                ORDER BY p.man_id, p.prod_id, p.firm_major)
+                              UNION
+                              (SELECT d.cfg_name, d.man_id, d.prod_id, d.firm_major, (SELECT COUNT(*) FROM predefined_node_config p
+                                                                                      JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
+                                                                                      WHERE a.addr = ? AND p.cfg_name = d.cfg_name) AS cnt_func, COUNT(*) AS cnt_def
+                                FROM predefined_node_defaults d
                                 JOIN addresses a ON (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major
-                                WHERE a.addr = ? AND p.cfg_name = d.cfg_name) AS cnt_def
-                              FROM predefined_node_config p
-                              JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
-                              WHERE a.addr = ?
-                              GROUP BY p.cfg_name, p.man_id, p.prod_id, p.firm_major
-                              ORDER BY p.man_id, p.prod_id, p.firm_major", oct "0x$f->{addr}", oct "0x$f->{addr}");
+                                WHERE a.addr = ?
+                                GROUP BY d.cfg_name, d.man_id, d.prod_id, d.firm_major
+                                ORDER BY d.man_id, d.prod_id, d.firm_major)", oct "0x$f->{addr}", oct "0x$f->{addr}", oct "0x$f->{addr}", oct "0x$f->{addr}");
 
   div id => 'pre_main'; Select;
   for my $p (@$pre_cfg)
