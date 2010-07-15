@@ -160,11 +160,11 @@ sub _funcname {
    } else {
      my $name = $self->dbRow('SELECT name FROM functions WHERE (func).type = ? AND (func).func = ? ORDER BY pos', $f1, $f3)->{name};
      $name =~ s{Buss \d+/(\d+)}{$buss->[$1/2-1]}ieg;
-     ($f2<128) ? (txt 'Module '.($f2+1).': ') : (txt 'Module select '.($f2-127).': ') if $f1 == 0;
-     ($f2<16) ? (txt $buss->[$f2].': ') : (txt 'Buss select '.($f2-15).': ') if $f1 == 1;
-     ($f2<16) ? (txt $self->dbRow('SELECT label FROM monitor_buss_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Monitor buss select '.($f2-15).': ') if $f1 == 2;
-     ($f2<1280) ? (txt $self->dbRow('SELECT label FROM src_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Source select '.($f2-1279).': ') if $f1 == 5;
-     ($f2<1280) ? (txt $self->dbRow('SELECT label FROM dest_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Destination select '.($f2-1279).': ') if $f1 == 6;
+     ($f2<128) ? (txt 'Module '.($f2+1).': ') : (txt 'Module selected '.($f2-127).': ') if $f1 == 0;
+     ($f2<16) ? (txt $buss->[$f2].': ') : (txt 'Buss selected '.($f2-15).': ') if $f1 == 1;
+     ($f2<16) ? (txt $self->dbRow('SELECT label FROM monitor_buss_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Monitor buss selected '.($f2-15).': ') if $f1 == 2;
+     ($f2<1280) ? (txt $self->dbRow('SELECT label FROM src_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Source selected '.($f2-1279).': ') if $f1 == 5;
+     ($f2<1280) ? (txt $self->dbRow('SELECT label FROM dest_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Destination selected '.($f2-1279).': ') if $f1 == 6;
      if ($name =~ /Console preset (\d+)/)
      {
        my $cp_lbl = $self->dbRow('SELECT label FROM console_preset WHERE number = ?', $1)->{label};
@@ -279,7 +279,7 @@ sub funclist {
   if($func[0]) {
     div id => 'func_0'; Select;
      option value => $_-1, $dspcount < $_/32 ? (class => 'off') : (), $_ for (1..128);
-     option value => $_, 'Select '.($_-127) for (128..131);
+     option value => $_, 'Selected '.($_-127) for (128..131);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[0]};
     end; end;
@@ -288,7 +288,7 @@ sub funclist {
   if($func[1]) {
     div id => 'func_1'; Select;
      option value => $_, $buss[$_] for (0..$#buss);
-     option value => $_, 'Select '.($_-15) for (16..19);
+     option value => $_, 'Selected '.($_-15) for (16..19);
     end; Select;
      option value => $_->{func}, $_->{name} for (@{$func[1]});
     end; end;
@@ -297,7 +297,7 @@ sub funclist {
   if($func[2]) {
     div id => 'func_2'; Select;
      option value => $_, $dspcount < ($_+1)/4 ? (class => 'off') : (), $mbuss[$_] for (0..$#mbuss);
-     option value => $_, 'Select '.($_-15) for (16..19);
+     option value => $_, 'Selected '.($_-15) for (16..19);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[2]};
     end; end;
@@ -312,7 +312,7 @@ sub funclist {
   if($func[5]) {
     div id => 'func_5'; Select;
      option value => $_->{number}-1, $_->{label} for @$src;
-     option value => $_, 'Select '.($_-1279) for (1280..1283);
+     option value => $_, 'Selected '.($_-1279) for (1280..1283);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[5]};
     end; end;
@@ -321,7 +321,7 @@ sub funclist {
   if($func[6]) {
     div id => 'func_6'; Select;
      option value => $_->{number}-1, $_->{label} for @$dest;
-     option value => $_, 'Select '.($_-1279) for (1280..1283);
+     option value => $_, 'Selected '.($_-1279) for (1280..1283);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[6]};
     end; end;
