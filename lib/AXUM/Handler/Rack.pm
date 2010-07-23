@@ -485,17 +485,17 @@ sub setpre {
                  SELECT a.addr, p.object, (p.func).type, CASE
                    WHEN (p.func).type = 0 THEN (SELECT CASE
                                                        WHEN ((p.func).seq+$f->{offset})<0 THEN 0
-                                                       WHEN ((p.func).seq+$f->{offset})>127 THEN 127
+                                                       WHEN ((p.func).seq+$f->{offset})>131 THEN 131
                                                        ELSE ((p.func).seq+$f->{offset})
                                                        END)
                    WHEN (p.func).type = 1 THEN (SELECT CASE
                                                        WHEN ((p.func).seq+$f->{offset})<0 THEN 0
-                                                       WHEN ((p.func).seq+$f->{offset})>15 THEN 15
+                                                       WHEN ((p.func).seq+$f->{offset})>19 THEN 19
                                                        ELSE ((p.func).seq+$f->{offset})
                                                        END)
                    WHEN (p.func).type = 2 THEN (SELECT CASE
                                                        WHEN ((p.func).seq+$f->{offset})<0 THEN 0
-                                                       WHEN ((p.func).seq+$f->{offset})>15 THEN 15
+                                                       WHEN ((p.func).seq+$f->{offset})>19 THEN 19
                                                        ELSE ((p.func).seq+$f->{offset})
                                                        END)
                    WHEN (p.func).type = 5 THEN (SELECT CASE
@@ -503,6 +503,8 @@ sub setpre {
                                                          (SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset})-1
                                                        WHEN EXISTS (SELECT number FROM src_config ORDER BY number LIMIT 1) THEN
                                                          (SELECT number FROM src_config ORDER BY number LIMIT 1)-1
+                                                       WHEN ((((p.func).seq+$f->{offset})>1279) AND (((p.func).seq+$f->{offset})<=1284)) THEN
+                                                         ((p.func).seq+$f->{offset})
                                                        ELSE
                                                          0
                                                        END)
@@ -511,6 +513,8 @@ sub setpre {
                                                          (SELECT number FROM dest_config WHERE pos = ((func).seq)+$f->{offset})-1
                                                        WHEN EXISTS (SELECT number FROM dest_config ORDER BY number LIMIT 1) THEN
                                                          (SELECT number FROM dest_config ORDER BY number LIMIT 1)-1
+                                                       WHEN ((((p.func).seq+$f->{offset})>1279) AND (((p.func).seq+$f->{offset})<=1284)) THEN
+                                                         ((p.func).seq+$f->{offset})
                                                        ELSE
                                                          0
                                                        END)
