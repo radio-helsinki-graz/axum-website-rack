@@ -42,14 +42,17 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("service", "%d|%d|%d|%d", "%s", "%s", this, "func_list", "Place before ", "Move")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("service", "%d|%d|%d|%d", "%s", "%s", this, "func_list", "Place before ", "Move")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, "$d->{pos}"), $v;
+  }
+  if ($n eq 'label') {
+    a href => '#', onclick => sprintf('return conf_text("service", "%d|%d|%d|%d", "%s", "%s", this, "Label", "Save")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v), $v;
   }
 }
 
 sub functions {
   my $self = shift;
 
-  my $src = $self->dbAll(q|SELECT pos, (func).type AS type, (func).func AS func, name, rcv_type, xmt_type FROM functions ORDER BY pos|);
+  my $src = $self->dbAll(q|SELECT pos, (func).type AS type, (func).func AS func, name, rcv_type, xmt_type, label FROM functions ORDER BY pos|);
 
   $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'functions');
 
@@ -67,8 +70,8 @@ sub functions {
   end;
 
   table;
-   Tr; th colspan => 5, $self->OEMFullProductName().' functions'; end;
-   Tr; th 'pos'; th 'type'; th 'function'; th 'rcv'; th 'xmt'; end;
+   Tr; th colspan => 6, $self->OEMFullProductName().' functions'; end;
+   Tr; th 'pos'; th 'type'; th 'function'; th 'rcv'; th 'xmt'; th 'label'; end;
    for my $s (@$src) {
      Tr;
       th; _col 'pos', $s; end;
@@ -76,6 +79,7 @@ sub functions {
       td $s->{name};
       td $mbn_types[$s->{rcv_type}];
       td $mbn_types[$s->{xmt_type}];
+      td; _col 'label', $s; end;
      end;
    }
   end;
@@ -89,6 +93,7 @@ sub ajax {
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'asciiprint' },
     { name => 'pos', required => 0, template => 'int' },
+    { name => 'label', required => 0, 'asciiprint' },
   );
   return 404 if $f->{_err};
 
@@ -109,6 +114,17 @@ sub ajax {
                    END;");
     $self->dbExec("SELECT functions_renumber();");
     txt 'Wait for reload';
+  }
+  if ($f->{field} eq 'label') {
+    $f->{item} =~ /(\d+)\|(\d+)\|(\d+)\|(\d+)/;
+    my $rcv_type = $1;
+    my $xmt_type = $2;
+    my $type = $3;
+    my $func = $4;
+
+    $self->dbExec("UPDATE functions SET label = '$f->{label}'
+                   WHERE rcv_type = $rcv_type AND xmt_type = $xmt_type AND (func).type = $type AND (func).func = $func;");
+    txt _col $f->{field}, {label => $f->{label}, rcv_type => $rcv_type, xmt_type => $xmt_type, type => $type, func => $func};
   }
 }
 

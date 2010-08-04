@@ -16,6 +16,7 @@ YAWF::register(
   qr{ajax/func} => \&funclist,
   qr{ajax/setfunc} => \&setfunc,
   qr{ajax/setdefault} => \&setdefault,
+  qr{ajax/setlabel/([0-9a-fA-F]{8})} => \&setlabel,
 );
 
 
@@ -150,6 +151,14 @@ sub list {
   $self->htmlFooter;
 }
 
+sub _col {
+  my($n, $d, $addr) = @_;
+  my $v = $d->{$n};
+
+  if ($n eq 'label') {
+     a href => '#', onclick => sprintf('return conf_text("setlabel/%08X", "%d", "%s", "%s", this, "Label", "Save")', oct "0x$addr", $d->{number}, $n, $v), $v ? ($v) : (class => 'off' , 'None');
+  }
+}
 
 sub _funcname {
   my($self, $addr, $num, $f1, $f2, $f3, $sens, $act, $buss) = @_;
@@ -193,11 +202,12 @@ sub conf {
   $addr = uc $addr;
 
   my $objects = $self->dbAll('
-      SELECT t.number, t.description, t.sensor_type, t.actuator_type, t.actuator_def, d.data, c.func
+      SELECT t.number, t.description, t.sensor_type, t.actuator_type, t.actuator_def, d.data, c.func, c.label, f.label AS func_label
       FROM templates t
       JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
       LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object AND t.firm_major = d.firm_major)
       LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
+      LEFT JOIN functions f ON (c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type)
       WHERE a.addr = ? ORDER BY t.number',
     oct "0x$addr"
   );
@@ -209,13 +219,15 @@ sub conf {
 
   $self->htmlHeader(page => $type, section => $addr, title => "Object configuration for $addr");
   table;
-   Tr; th colspan => 6, "Object configuration for $name->{name}".($type eq 'rack' ? " (slot $name->{slot_nr})" : ''); end;
+   Tr; th colspan => 7, "Object configuration for $name->{name}".($type eq 'rack' ? " (slot $name->{slot_nr})" : ''); end;
    Tr;
     th 'Nr.';
     th 'Description';
     th 'Type';
     th 'Default';
     th 'Function';
+    th 'Label';
+    th 'Default label';
    end;
    for my $o (@$objects) {
      Tr;
@@ -228,6 +240,8 @@ sub conf {
          $o->{func} && $o->{func} =~ /(\d+),(\d+),(\d+)/ ? ($1, $2, $3) : (-1,0,0),
          $o->{sensor_type}, $o->{actuator_type}, $buss;
       end;
+      td; _col 'label', $o, $addr; end;
+      td $o->{func_label};
      end;
    }
   end;
@@ -351,6 +365,22 @@ sub setfunc {
   }
   _funcname $self, $f->{addr}, $f->{nr}, $f1, $f2, $f3, $f->{sensor}, $f->{actuator},
     [ map $_->{label}, @{$self->dbAll('SELECT label FROM buss_config ORDER BY number')} ];
+}
+
+sub setlabel {
+  my($self, $addr) = @_;
+  $addr = uc $addr;
+
+  my $f = $self->formValidate(
+    { name => 'field', template => 'asciiprint' },
+    { name => 'item', template => 'asciiprint' },
+    { name => 'label', required => 0, 'asciiprint' },
+  );
+  return 404 if $f->{_err};
+
+  $self->dbExec('UPDATE node_config SET label = ? WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)', $f->{$f->{field}}, oct "0x$addr", $f->{item}, oct "0x$addr");
+
+  txt _col 'label', $f, $addr;
 }
 
 
