@@ -436,7 +436,6 @@ sub ajax {
     { name => 'field', template => 'asciiprint' }, # should have an enum property
     { name => 'item', required => 1, regex => [qr/^[0-9a-f]{8}$/i] },
     { name => 'export', required => 0, maxlength => 32, minlength => 1 },
-    { name => 'import', required => 0, maxlength => 32, minlength => 1 },
   );
   return 404 if $f->{_err};
 
@@ -450,10 +449,12 @@ sub ajax {
                                 WHEN (func).type = 6 THEN (SELECT pos FROM dest_config WHERE number = ((func).seq+1))
                                ELSE (func).seq
                                END AS seq,
-                               (func).func FROM node_config WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
+                               (func).func,
+                               label
+                               FROM node_config WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
   for my $o (@$obj_cfgs) {
     my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}, $o->{func});
-    $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func);
+    $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func, label) VALUES(?,?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func, $o->{label});
   }
 
   my $obj_dflts = $self->dbAll("SELECT object, data FROM defaults WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
@@ -511,7 +512,7 @@ sub setpre {
   $self->dbExec("DELETE FROM defaults WHERE addr = ?", oct "0x$f->{addr}");
 
   #Insert all functions
-  $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func, firm_major)
+  $self->dbExec("INSERT INTO node_config (addr, object, func.type, func.seq, func.func, firm_major, label)
                  SELECT a.addr, p.object, (p.func).type, CASE
                    WHEN (p.func).type = 0 THEN (SELECT CASE
                                                        WHEN ((p.func).seq+$f->{offset})<0 THEN 0
@@ -550,7 +551,7 @@ sub setpre {
                                                        END)
                    ELSE 0
                    END AS seq,
-                   (func).func, p.firm_major
+                   (func).func, p.firm_major, p.label
                  FROM predefined_node_config p
                  JOIN addresses a ON (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major
                  WHERE a.addr = ? AND p.cfg_name = ?", oct "0x$f->{addr}", $f->{predefined});
