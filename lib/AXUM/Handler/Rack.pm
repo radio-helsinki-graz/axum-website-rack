@@ -202,12 +202,12 @@ sub conf {
   $addr = uc $addr;
 
   my $objects = $self->dbAll('
-      SELECT t.number, t.description, t.sensor_type, t.actuator_type, t.actuator_def, d.data, c.func, c.label, f.label AS func_label
+      SELECT t.number, t.description, t.sensor_type, t.actuator_type, t.actuator_def, d.data, c.func, c.label,
+              (SELECT f.label FROM functions f WHERE (c.func).type = (f.func).type AND (c.func).func = (f.func).func LIMIT 1) AS func_label
       FROM templates t
       JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
       LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object AND t.firm_major = d.firm_major)
       LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
-      LEFT JOIN functions f ON (c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type)
       WHERE a.addr = ? ORDER BY t.number',
     oct "0x$addr"
   );
