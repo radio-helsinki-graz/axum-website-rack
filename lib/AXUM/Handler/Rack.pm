@@ -176,7 +176,7 @@ sub _funcname {
      ($f2<1280) ? (txt $self->dbRow('SELECT label FROM dest_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Destination selected '.($f2-1279).': ') if $f1 == 6;
      if ($name =~ /Console preset (\d+)/)
      {
-       my $cp_lbl = $self->dbRow('SELECT label FROM console_preset WHERE number = ?', $1)->{label};
+       my $cp_lbl = $self->dbRow('SELECT label FROM console_preset WHERE pos = ?', $1)->{label};
        txt "Console preset: ".(($cp_lbl) ? ($cp_lbl) : ($1));
      } else {
        txt $name;
@@ -261,7 +261,7 @@ sub funclist {
   my @mbuss = map $_->{label}, @{$self->dbAll('SELECT label FROM monitor_buss_config ORDER BY number')};
   my $src = $self->dbAll('SELECT number, label FROM src_config ORDER BY pos');
   my $dest = $self->dbAll('SELECT number, label FROM dest_config ORDER BY pos');
-  my $preset = $self->dbAll('SELECT number, label FROM console_preset ORDER BY number');
+  my $preset = $self->dbAll('SELECT number, label FROM console_preset ORDER BY pos');
   my $dspcount = $self->dbRow('SELECT dsp_count() AS cnt')->{cnt};
 
   my $where = join ' OR ',
