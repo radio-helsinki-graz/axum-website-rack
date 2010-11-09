@@ -13,6 +13,7 @@ YAWF::register(
   qr{service/password} => \&password,
   qr{ajax/service} => \&ajax,
   qr{ajax/service/account} => \&set_account,
+  qr{ajax/service/user_level} => \&set_user_level,
 );
 
 my @mbn_types = ('no data', 'unsigned int', 'signed int', 'state', 'octet string', 'float', 'bit string');
@@ -47,12 +48,17 @@ sub _col {
   if ($n eq 'label') {
     a href => '#', onclick => sprintf('return conf_text("service", "%d|%d|%d|%d", "%s", "%s", this, "Label", "Save")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v), $v;
   }
+  if ($n =~ /user_level[0-5]/) {
+    if ($d->{rcv_type} != 0) {
+      a href => '#', onclick => sprintf('return conf_set("service", "%d|%d|%d|%d", "%s", "%s", this)', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
+    }
+  }
 }
 
 sub functions {
   my $self = shift;
 
-  my $src = $self->dbAll(q|SELECT pos, (func).type AS type, (func).func AS func, name, rcv_type, xmt_type, label FROM functions ORDER BY pos|);
+  my $src = $self->dbAll(q|SELECT pos, (func).type AS type, (func).func AS func, name, rcv_type, xmt_type, label, user_level0, user_level1, user_level2, user_level3, user_level4, user_level5 FROM functions ORDER BY pos|);
 
   $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'functions');
 
@@ -70,8 +76,8 @@ sub functions {
   end;
 
   table;
-   Tr; th colspan => 6, $self->OEMFullProductName().' functions'; end;
-   Tr; th 'pos'; th 'type'; th 'function'; th 'rcv'; th 'xmt'; th 'label'; end;
+   Tr; th colspan => 12, $self->OEMFullProductName().' functions'; end;
+   Tr; th 'pos'; th 'type'; th 'function'; th 'rcv'; th 'xmt'; th 'label'; th 'idle'; th 'unkn'; th 'oper1'; th 'oper2'; th 'super1'; th 'super2'; end;
    for my $s (@$src) {
      Tr;
       th; _col 'pos', $s; end;
@@ -80,6 +86,9 @@ sub functions {
       td $mbn_types[$s->{rcv_type}];
       td $mbn_types[$s->{xmt_type}];
       td; _col 'label', $s; end;
+      for (0..5) {
+        td; _col "user_level$_", $s; end;
+      }
      end;
    }
   end;
@@ -94,6 +103,9 @@ sub ajax {
     { name => 'item', template => 'asciiprint' },
     { name => 'pos', required => 0, template => 'int' },
     { name => 'label', required => 0, 'asciiprint' },
+    map +(
+      { name => "user_level${_}", required => 0, enum => [0,1] },
+    ), 0..5
   );
   return 404 if $f->{_err};
 
@@ -125,6 +137,20 @@ sub ajax {
     $self->dbExec("UPDATE functions SET label = '$f->{label}'
                    WHERE rcv_type = $rcv_type AND xmt_type = $xmt_type AND (func).type = $type AND (func).func = $func;");
     txt _col $f->{field}, {label => $f->{label}, rcv_type => $rcv_type, xmt_type => $xmt_type, type => $type, func => $func};
+  }
+  if ($f->{field} =~ /user_level([0-5])/)
+  {
+    $f->{item} =~ /(\d+)\|(\d+)\|(\d+)\|(\d+)/;
+    my $rcv_type = $1;
+    my $xmt_type = $2;
+    my $type = $3;
+    my $func = $4;
+
+    my $db_data = $f->{$f->{field}} ? ('true') : ('false');
+
+    $self->dbExec("UPDATE functions SET $f->{field} = $db_data
+                   WHERE rcv_type = $rcv_type AND xmt_type = $xmt_type AND (func).type = $type AND (func).func = $func;");
+    txt _col $f->{field}, {$f->{field} => $f->{$f->{field}}, rcv_type => $rcv_type, xmt_type => $xmt_type, type => $type, func => $func};
   }
 }
 

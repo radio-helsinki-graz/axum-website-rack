@@ -17,6 +17,7 @@ YAWF::register(
   qr{ajax/setfunc} => \&setfunc,
   qr{ajax/setdefault} => \&setdefault,
   qr{ajax/setlabel/([0-9a-fA-F]{8})} => \&setlabel,
+  qr{ajax/setuserlevel/([0-9a-fA-F]{8})} => \&setuserlevel,
 );
 
 
@@ -156,7 +157,20 @@ sub _col {
   my $v = $d->{$n};
 
   if ($n eq 'label') {
-     a href => '#', onclick => sprintf('return conf_text("setlabel/%08X", "%d", "%s", "%s", this, "Label", "Save")', oct "0x$addr", $d->{number}, $n, $v), $v ? ($v) : (class => 'off' , 'None');
+    $v = 0 if (!defined $v);
+    a href => '#', onclick => sprintf('return conf_text("setlabel/%08X", "%d", "%s", "%s", this, "Label", "Save")', oct "0x$addr", $d->{number}, $n, $v), $v ? ($v) : (class => 'off' , 'none');
+  }
+  if ($n =~ /user_level[0-5]/)
+  {
+    if ($d->{sensor_type}) {
+      if (defined $v) {
+        a href => '#', onclick => sprintf('return conf_set("setuserlevel/%08X", "%d", "%s", "%s", this)', oct "0x$addr", $d->{number}, $n, $v+1), ($v ? 'y' : 'n');
+      } else {
+        if (defined $d->{"func_$n"}) {
+          a href => '#', onclick => sprintf('return conf_set("setuserlevel/%08X", "%d", "%s", "%s", this)', oct "0x$addr", $d->{number}, $n, 0), class => 'off', $d->{"func_$n"} ? 'y' : 'n';
+        }
+      }
+    }
   }
 }
 
@@ -203,11 +217,19 @@ sub conf {
 
   my $objects = $self->dbAll('
       SELECT t.number, t.description, t.sensor_type, t.actuator_type, t.actuator_def, d.data, c.func, c.label,
-              (SELECT f.label FROM functions f WHERE (c.func).type = (f.func).type AND (c.func).func = (f.func).func LIMIT 1) AS func_label
+             c.user_level0, c.user_level1, c.user_level2, c.user_level3, c.user_level4, c.user_level5,
+             f.label AS func_label,
+             f.user_level0 AS func_user_level0,
+             f.user_level1 AS func_user_level1,
+             f.user_level2 AS func_user_level2,
+             f.user_level3 AS func_user_level3,
+             f.user_level4 AS func_user_level4,
+             f.user_level5 AS func_user_level5
       FROM templates t
       JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
       LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object AND t.firm_major = d.firm_major)
       LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
+      LEFT JOIN functions f ON ((c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type))
       WHERE a.addr = ? ORDER BY t.number',
     oct "0x$addr"
   );
@@ -218,22 +240,35 @@ sub conf {
     : 'SELECT a.name FROM addresses a WHERE a.addr = ?', oct "0x$addr");
 
   $self->htmlHeader(page => $type, section => $addr, title => "Object configuration for $addr");
+
+
   table;
-   Tr; th colspan => 7, "Object configuration for $name->{name}".($type eq 'rack' ? " (slot $name->{slot_nr})" : ''); end;
+   Tr; th colspan => 13, "Object configuration for $name->{name}".($type eq 'rack' ? " (slot $name->{slot_nr})" : ''); end;
+   Tr;
+    th colspan => 5;
+    th colspan => 2, 'Label';
+    th colspan => 7, 'User level';
+   end;
    Tr;
     th 'Nr.';
     th 'Description';
     th 'Type';
     th 'Default';
     th 'Function';
-    th 'Label';
-    th 'Default label';
+    th 'Local';
+    th 'Default';
+    th 'Idle';
+    th 'Unkown';
+    th 'Operator 1';
+    th 'Operator 2';
+    th 'Supervisor 1';
+    th 'Supervisor 2';
    end;
    for my $o (@$objects) {
      Tr;
       th $o->{number};
       td $o->{description};
-      td join ' + ', $o->{sensor_type} ? 'sensor' : (), $o->{actuator_type} ? 'actuator' : ();
+      td join ' + ', $o->{sensor_type} ? 'S' : (), $o->{actuator_type} ? 'A' : ();
       td; _default $addr, $o; end;
       td;
        _funcname $self, $addr, $o->{number},
@@ -242,6 +277,9 @@ sub conf {
       end;
       td; _col 'label', $o, $addr; end;
       td $o->{func_label};
+      for (0..5) {
+        td class=>'off'; _col "user_level$_", $o, $addr; end;
+      }
      end;
    }
   end;
@@ -380,9 +418,48 @@ sub setlabel {
 
   $self->dbExec('UPDATE node_config SET label = ? WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)', $f->{$f->{field}}, oct "0x$addr", $f->{item}, oct "0x$addr");
 
+  $f->{number} = $f->{item};
   txt _col 'label', $f, $addr;
 }
 
+sub setuserlevel {
+  my($self, $addr) = @_;
+  $addr = uc $addr;
+
+  my $f = $self->formValidate(
+    { name => 'field', template => 'asciiprint' },
+    { name => 'item', template => 'asciiprint' },
+    map +(
+      { name => "user_level${_}", required => 0, enum => [0,1,2] },
+    ), 0..5
+  );
+  return 404 if $f->{_err};
+
+  if ($f->{$f->{field}} < 2) {
+    $self->dbExec("UPDATE node_config SET $f->{field} = ? WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", $f->{$f->{field}}, oct "0x$addr", $f->{item}, oct "0x$addr");
+  } else {
+    $self->dbExec("UPDATE node_config SET $f->{field} = NULL WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", oct "0x$addr", $f->{item}, oct "0x$addr");
+  }
+
+  my $o = $self->dbRow('
+      SELECT t.number, t.sensor_type,
+             c.user_level0, c.user_level1, c.user_level2, c.user_level3, c.user_level4, c.user_level5,
+             f.user_level0 AS func_user_level0,
+             f.user_level1 AS func_user_level1,
+             f.user_level2 AS func_user_level2,
+             f.user_level3 AS func_user_level3,
+             f.user_level4 AS func_user_level4,
+             f.user_level5 AS func_user_level5
+      FROM templates t
+      JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
+      LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
+      LEFT JOIN functions f ON ((c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type))
+      WHERE a.addr = ? AND t.number= ? ORDER BY t.number',
+    oct "0x$addr", $f->{item}
+  );
+
+  txt _col $f->{field}, $o, $addr;
+}
 
 sub setdefault {
   my $self = shift;
