@@ -517,7 +517,17 @@ sub conf {
 
   table;
    Tr;
-    th colspan => 6, "Configuration for module $nr - Console $mod->{console}";
+    th colspan => 6;
+     if ($nr>1) {
+      my $lowernr = $nr-1;
+       a href => "$lowernr", "<<";
+     }
+     txt " Configuration for module $nr - Console $mod->{console} ";
+     if ($nr<128) {
+       my $highernr = $nr+1;
+       a href => "$highernr", ">>";
+     }
+    end;
    end;
    Tr;
     th colspan => 2, rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Preset';
