@@ -95,12 +95,13 @@ function conf_set_remove(page, item, field, value, obj, remove) {
     obj = this;
   while((obj.nodeName.toLowerCase() != 'td') && (obj.nodeName.toLowerCase() != 'th'))
     obj = obj.parentNode;
+//  alert('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value));
   ajax('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value), function(h) {
     obj.innerHTML = h.responseText;
     if (remove) {
       remove_input(input_obj);
     }
-    if((((page == 'source') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account'))
+    if((((page == 'source') || (page == 'users') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account'))
     {
       location.reload(true);
     }
@@ -140,6 +141,26 @@ function conf_text(page, item, field, value, obj, textname, buttonname) {
   d.innerHTML = '';
   if(textname) d.innerHTML += textname;
   d.innerHTML += '<input type="text" value="'+qq(value)+'" size="'+size+'" class="text">';
+  if(buttonname) {
+    d.innerHTML += '<input type="submit" value="'+buttonname+'" class="button" />';
+  } else {
+    d.innerHTML += '<input type="submit" value="Save" class="button" />';
+  }
+  d = d.getElementsByTagName('input')[0];
+  d.focus();
+  d.select();
+  return false;
+}
+
+function conf_pass(page, item, field, value, obj, textname, buttonname) {
+  var d = create_input(obj, function(f) {
+    conf_set(page, item, field, f.getElementsByTagName('input')[0].value, obj);
+  });
+  if(!d) return false;
+  var size = value.length > 10 ? value.length+5 : 10;
+  d.innerHTML = '';
+  if(textname) d.innerHTML += textname;
+  d.innerHTML += '<input type="password" value="'+qq(value)+'" size="'+size+'" class="text">';
   if(buttonname) {
     d.innerHTML += '<input type="submit" value="'+buttonname+'" class="button" />';
   } else {
@@ -206,6 +227,20 @@ function conf_addpreset(obj, button_text, preset_number) {
   d.innerHTML =
     '<label for="label">Label:</label><input type="text" class="text" name="label" id="label" size="10" value="Preset"/>'
    +'<input name="preset" type="hidden" value="'+preset_number+'"/>'
+   +'<input type="submit" value="'+button_text+'" class="button" />';
+  d = d.getElementsByTagName('select');
+  return false;
+}
+
+/* this is an actual form, doesn't use AJAX */
+function conf_adduser(obj, button_text) {
+  var d = create_input(obj, null, -30);
+  if(!d) return false;
+
+  d.style.textAlign = 'right';
+  d.innerHTML =
+    '<label for="label">Username:</label><input type="text" class="text" name="username" id="label" size="10" value="New user"/><BR/>'
+   +'<label for="label">Password:</label><input type="password" class="text" name="password" id="label" size="10"/><BR/>'
    +'<input type="submit" value="'+button_text+'" class="button" />';
   d = d.getElementsByTagName('select');
   return false;

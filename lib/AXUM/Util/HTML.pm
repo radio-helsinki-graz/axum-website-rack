@@ -45,6 +45,13 @@ sub htmlHeader {
          a href => "/preset/$o{section}", "Preset $o{section}";
        }
      }
+     if($o{page} eq 'users') {
+       a href => '/users', 'Users';
+       if($o{section})
+       {
+         lit " &raquo; ";
+       }
+     }
      if($o{page} eq 'busspreset') {
        a href => '/busspreset', 'Buss presets';
        if($o{section})

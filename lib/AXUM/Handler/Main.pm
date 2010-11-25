@@ -44,6 +44,9 @@ sub home {
    Tr; th colspan => 2, 'Hardware settings'; end;
    Tr; th $i++; td; a href => '/surface', 'Surface configuration'; end; end;
    Tr; th $i++; td; a href => '/rack', 'Rack configuration'; end; end;
+   Tr class => 'empty'; th colspan => 2; end; end;
+   Tr; th colspan => 2, 'Security settings'; end;
+   Tr; th $i++; td; a href => '/users', 'Users'; end; end;
   end;
   $self->htmlFooter;
 }
