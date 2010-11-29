@@ -15,6 +15,7 @@ YAWF::register(
 );
 
 my @user_levels = ('Idle', 'Unknown user', 'Operator 1', 'Operator 2', 'Supervisor 1', 'Supervisor 2', 'Administrator');
+my @pool_levels = ('A', 'B', 'All');
 
 sub _col {
   my($n, $d, $lst) = @_;
@@ -42,7 +43,7 @@ sub _col {
   if($n =~ /console([1|2|3|4])_write/) {
      input type => 'button', onclick => sprintf('return conf_select("users/write", %d, "%s", %d, this, "user_list", "Select user ", "Write")', $d->{number}, $n, $v), value => 'Write';
   }
-  if($n =~ /console([1|2|3|4])_preset/) {
+  if($n =~ /console([1|2|3|4])_preset$/) {
     my $s;
     for my $l (@$lst) {
       if ($l->{number} == $v)
@@ -52,6 +53,14 @@ sub _col {
     }
     a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "preset_list", "Select preset ", "Save")', $d->{number}, $n, $v),
     ((not defined $v) or ($v == 'NULL')) ? ((class => 'off'), 'None') : $s->{label};
+  }
+  if($n =~ /console([1|2|3|4])_sourcepool/) {
+    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
+    ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
+  }
+  if($n =~ /console([1|2|3|4])_presetpool/) {
+    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
+    ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
   }
 }
 
@@ -105,15 +114,17 @@ sub user_overview {
   }
   my $users = $self->dbAll(q|SELECT pos, number, username, password,
                                     console1_user_level, console2_user_level, console3_user_level, console4_user_level,
-                                    console1_preset, console2_preset, console3_preset, console4_preset
+                                    console1_preset, console2_preset, console3_preset, console4_preset,
+                                    console1_sourcepool, console2_sourcepool, console3_sourcepool, console4_sourcepool,
+                                    console1_presetpool, console2_presetpool, console3_presetpool, console4_presetpool
                              FROM users ORDER BY pos|);
 
   my $console_presets = $self->dbAll(q|SELECT pos, number, label FROM console_preset ORDER BY pos|);
+  my $max_pos;
 
   $self->htmlHeader(title => 'Users', page => 'users');
   div id => 'user_list', class => 'hidden';
    Select;
-    my $max_pos;
     $max_pos = 0;
     for (@$users) {
       option value => "$_->{pos}", $_->{username};
@@ -123,7 +134,6 @@ sub user_overview {
   end;
   div id => 'user_pos_list', class => 'hidden';
    Select;
-    my $max_pos;
     $max_pos = 0;
     for (@$users) {
       option value => "$_->{pos}", $_->{username};
@@ -145,18 +155,24 @@ sub user_overview {
     }
    end;
   end;
-
+  div id => 'pool_list', class => 'hidden';
+   Select;
+    option value => '0', 'A';
+    option value => '1', 'B';
+    option value => '2', 'All';
+   end;
+  end;
   table;
-   Tr; th colspan => 16, 'Users'; end;
+   Tr; th colspan => 20, 'Users'; end;
    Tr;
     th colspan => 3, '';
-    th colspan => 2, "Console $_" for (1..4);
+    th colspan => 4, "Console $_" for (1..4);
     th '';
    end;
    Tr;
     td colspan => 3, '';
     for (1..4) {
-      td colspan => 2;
+      td colspan => 4;
         _col "console${_}_login";
         _col "console${_}_write";
       end;
@@ -164,11 +180,26 @@ sub user_overview {
     td '';
    end;
    Tr;
+    th colspan => 3, '';
+    for (1..4) {
+      th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")';
+       txt 'User'; br;
+       txt 'level';
+      end;
+      th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")';
+       txt 'Console'; br;
+       txt 'preset';
+      end;
+      th colspan => 2, 'Pool';
+    }
+    th '';
+   end;
+   Tr;
     th 'Nr';
     th 'Username';
     th 'Password';
     for (1..4) {
-      th 'Level';
+      th 'Source';
       th 'Preset';
     }
     th '';
@@ -182,6 +213,8 @@ sub user_overview {
       for (1..4) {
         td; _col "console${_}_user_level", $u; end;
         td; _col "console${_}_preset", $u, $console_presets; end;
+        td; _col "console${_}_sourcepool", $u; end;
+        td; _col "console${_}_presetpool", $u; end;
       }
       td;
        a href => '/users?del='.$u->{number}, title => 'Delete';
@@ -210,9 +243,12 @@ sub ajax {
     map +(
       { name => "console${_}_user_level", required => 0, enum => [ 0..6 ] },
       { name => "console${_}_preset", required => 0, regex => [ qr/[NULL|\d]/, 0 ] },
+      { name => "console${_}_sourcepool", required => 0, enum => [ 0..2 ] },
+      { name => "console${_}_presetpool", required => 0, enum => [ 0..2 ] },
     ), 1..4
   );
   return 404 if $f->{_err};
+
 
   #if field returned is 'pos', the positions of other rows may change...
   if($f->{field} eq 'pos') {
@@ -229,7 +265,11 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_}))
-      for(qw|username password|, (map("console${_}_user_level", 1..4)), (map("console${_}_preset", 1..4)));
+      for(qw|username password|,
+             (map("console${_}_user_level", 1..4)),
+             (map("console${_}_preset", 1..4)),
+             (map("console${_}_sourcepool", 1..4)),
+             (map("console${_}_presetpool", 1..4)));
 
     $self->dbExec('UPDATE users !H WHERE number = ?', \%set, $f->{item}) if keys %set;
     _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },

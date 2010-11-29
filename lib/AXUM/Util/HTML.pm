@@ -52,6 +52,20 @@ sub htmlHeader {
          lit " &raquo; ";
        }
      }
+     if($o{page} eq 'sourcepools') {
+       a href => '/sourcepools', 'Source pools';
+       if($o{section})
+       {
+         lit " &raquo; ";
+       }
+     }
+     if($o{page} eq 'presetpools') {
+       a href => '/presetpools', 'Preset pools';
+       if($o{section})
+       {
+         lit " &raquo; ";
+       }
+     }
      if($o{page} eq 'busspreset') {
        a href => '/busspreset', 'Buss presets';
        if($o{section})
