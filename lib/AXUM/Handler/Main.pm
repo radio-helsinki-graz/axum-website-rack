@@ -47,7 +47,7 @@ sub home {
    Tr class => 'empty'; th colspan => 2; end; end;
    Tr; th colspan => 2, 'Security settings'; end;
    Tr; th $i++; td; a href => '/sourcepools', 'Source pools'; end; end;
-   Tr; th $i++; td; a href => '/presetpools', 'Preset pools'; end; end;
+   Tr; th $i++; td; a href => '/presetpools', 'Processing preset pools'; end; end;
    Tr; th $i++; td; a href => '/users', 'Users'; end; end;
   end;
   $self->htmlFooter;
