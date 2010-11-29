@@ -15,6 +15,7 @@ YAWF::register(
   qr{ajax/change_conf} => \&change_conf,
 );
 
+my @user_level_from_names = ('None', map +( sprintf('Console %d', $_), 1..4));
 
 sub _col {
   my($n, $c) = @_;
@@ -29,7 +30,6 @@ sub _col {
       $n eq 'engine_addr' && $v eq '00000000' ? (class => 'off') : (), $v;
   }
   elsif ($n eq 'id') {
-#    if (($c->{conf_change} != 0) and ($c->{default_cnt} or $c->{config_cnt})) {
     if ($c->{conf_change} and $c->{temp_cnt}) {
       (my $man = $c->{id})  =~ s/(\w{4}):(\w{4}):(\w{4})/$1/e;
       (my $prod = $c->{id}) =~ s/(\w{4}):(\w{4}):(\w{4})/$2/e;
@@ -40,6 +40,10 @@ sub _col {
     else {
       txt $c->{id};
     }
+  }
+  elsif ($n eq 'user_level_from_console') {
+    a href => '#', onclick => sprintf('return conf_select("mambanet", "%s", "%s", %d, this, "console_list")', $c->{addr}, $n, $v),
+      $user_level_from_names[$v];
   }
 }
 
@@ -55,7 +59,7 @@ sub list {
     ($f->{del} or $f->{refresh}) ? (return $self->resRedirect('/service/mambanet', 'temp')) : ();
   }
 
-  my $cards = $self->dbAll('SELECT a.addr, a.id, a.name, a.active, a.engine_addr, a.parent, a.firm_major, b.name AS parent_name,
+  my $cards = $self->dbAll('SELECT a.addr, a.id, a.name, a.active, a.engine_addr, a.parent, a.user_level_from_console, a.firm_major, b.name AS parent_name,
     (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr AND a.firm_major = n.firm_major) AS config_cnt,
     (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr AND a.firm_major = d.firm_major) AS default_cnt,
     (SELECT COUNT(*) FROM addresses b WHERE (b.id).man = (a.id).man AND (b.id).prod = (a.id).prod AND b.firm_major = a.firm_major AND b.active AND NOT a.active) AS conf_change,
@@ -65,14 +69,20 @@ sub list {
     ORDER BY a.addr');
 
   $self->htmlHeader(title => 'MambaNet configuration', page => 'service', section => 'mambanet');
+  div id => 'console_list', class => 'hidden';
+    Select;
+      option value => $_, $user_level_from_names[$_] for (0..4);
+    end;
+  end;
   table;
-   Tr; th colspan => 9, 'MambaNet configuration'; end;
+   Tr; th colspan => 10, 'MambaNet configuration'; end;
    Tr;
     th 'Address';
     th 'Unique ID';
     th 'Node name';
     th 'Engine';
     th 'Parent';
+    th 'User level';
     th 'Default';
     th 'Config';
     th 'Objects';
@@ -87,6 +97,7 @@ sub list {
       td; _col 'name', $c; end;
       td; _col 'engine_addr', $c; end;
       td $c->{parent};
+      td; _col 'user_level_from_console', $c; end;
       td !$c->{default_cnt} ? (class => 'inactive') : (), $c->{default_cnt};
       td !$c->{config_cnt} ? (class => 'inactive') : (), $c->{config_cnt};
       td !$c->{temp_cnt} ? (class => 'inactive') : (), $c->{temp_cnt};
@@ -225,6 +236,7 @@ sub ajax {
     { name => 'name', required => 0, maxlength => 32, minlength => 1 },
     { name => 'engine_addr', required => 0, regex => [qr/^[0-9a-f]{8}$/i] },
     { name => 'addr', required => 0, regex => [qr/^[0-9a-f]{8}$/i] },
+    { name => 'user_level_from_console', required => 0, enum => [0,1,2,3,4] },
   );
   return 404 if $f->{_err};
 
@@ -233,6 +245,7 @@ sub ajax {
     for(qw|name|);
   $set{"engine_addr = ?"} = oct "0x$f->{engine_addr}" if defined $f->{engine_addr};
   $set{"addr = ?"} = oct "0x$f->{addr}" if defined $f->{addr};
+  $set{"user_level_from_console = ?"} = $f->{user_level_from_console} if defined $f->{user_level_from_console};
 
   $self->dbExec('UPDATE addresses !H WHERE addr = ?', \%set, $f->{item}) if keys %set;
 

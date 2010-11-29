@@ -34,7 +34,7 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_pass("users", %d, "%s", "%s", this)', $d->{number}, $n, $jsval), "*****";
   }
   if($n =~ /console([1|2|3|4])_user_level/) {
-    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "level_list", "Select user level ", "Save")', $d->{number}, $n, $v), ($v>1) ? () : (class => 'off'), @user_levels[$v];
+    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "level_list", "Select user level ", "Save")', $d->{number}, $n, $v), ($v>1) ? () : (class => 'off'), $user_levels[$v];
   }
   if($n =~ /console([1|2|3|4])_login/) {
      input type => 'button', onclick => sprintf('return conf_select("users/login", %d, "%s", %d, this, "user_list", "Select user ", "Login")', $d->{number}, $n, $v), value => 'Login';
@@ -134,12 +134,12 @@ sub user_overview {
   end;
   div id => 'level_list', class => 'hidden';
    Select;
-    option value => "$_", @user_levels[$_] for (0..6);
+    option value => "$_", $user_levels[$_] for (0..6);
    end;
   end;
   div id => 'preset_list', class => 'hidden';
    Select;
-      option value => 'NULL', 'None';
+    option value => 'NULL', 'None';
     for (@$console_presets) {
       option value => "$_->{number}", $_->{label};
     }

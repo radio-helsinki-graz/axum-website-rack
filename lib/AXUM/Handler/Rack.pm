@@ -22,12 +22,12 @@ YAWF::register(
 
 
 my @mbn_types = ('no data', 'unsigned int', 'signed int', 'state', 'octet string', 'float', 'bit string');
-
+my @user_level_from_names = ('None', map +( sprintf('Console %d', $_), 1..4));
 
 sub listui {
   my $self = shift;
 
-  my $cards = $self->dbAll('SELECT a.addr, a.name, a.active, a.parent, (a.id).man, (a.id).prod, a.firm_major,
+  my $cards = $self->dbAll('SELECT a.addr, a.name, a.active, a.parent, (a.id).man, (a.id).prod, a.firm_major, a.user_level_from_console,
     (SELECT COUNT(*) FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major) AS objects,
     (SELECT number FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major AND t.description = \'Slot number\') AS slot_obj,
     (SELECT name FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_name,
@@ -39,8 +39,13 @@ sub listui {
     RIGHT JOIN addresses a ON a.addr = s.addr WHERE s.addr IS NULL AND ((a.parent).man != 1 OR (a.parent).prod != 12) AND NOT ((a.id).man=(a.parent).man AND (a.id).prod=(a.parent).prod AND (a.id).id=(a.parent).id)
     ORDER BY NULLIF((a.parent).man, 0), (a.parent).prod, (a.parent).id, NOT a.active, (a.id).man, (a.id).prod, (a.id).id');
   $self->htmlHeader(title => 'Surface configuration', page => 'surface');
+  div id => 'console_list', class => 'hidden';
+    Select;
+      option value => $_, $user_level_from_names[$_] for (0..4);
+    end;
+  end;
   table;
-   Tr; th colspan => 7, 'Surface configuration'; end;
+   Tr; th colspan => 8, 'Surface configuration'; end;
    my $prev_parent='';
    for my $c (@$cards) {
      $c->{parent} =~ s/\((\d+),(\d+),(\d+)\)/sprintf($1?'%04X:%04X:%04X':'-', $1, $2, $3)/e;
@@ -48,13 +53,14 @@ sub listui {
        if ($prev_parent) {
          Tr class => 'empty'; th colspan => 5; end;
        }
-       Tr; th colspan => 7, !$c->{parent_name} ? 'No parent' : "$c->{parent} ($c->{parent_name})"; end;
+       Tr; th colspan => 8, !$c->{parent_name} ? 'No parent' : "$c->{parent} ($c->{parent_name})"; end;
        Tr;
          th 'MambaNet Address';
          th 'Node name';
          th 'Default';
          th 'Config';
          th colspan => 3, 'Settings';
+         th 'User level';
        end;
        $prev_parent = $c->{parent};
      }
@@ -85,6 +91,9 @@ sub listui {
          a href => '#', class => 'off', 'no export data';
        }
       end;
+      td;
+        a href => '#', onclick => sprintf('return conf_select("surface", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
+      end;
      end;
    }
   end;
@@ -104,8 +113,13 @@ sub list {
     FROM slot_config s JOIN addresses a ON a.addr = s.addr ORDER BY s.slot_nr');
 
   $self->htmlHeader(title => 'Rack configuration', page => 'rack');
+  div id => 'console_list', class => 'hidden';
+    Select;
+      option value => $_, $user_level_from_names[$_] for (0..4);
+    end;
+  end;
   table;
-   Tr; th colspan => 10, 'Rack configuration'; end;
+   Tr; th colspan => 11, 'Rack configuration'; end;
    Tr;
     th 'Slot';
     th 'MambaNet Address';
@@ -115,6 +129,7 @@ sub list {
     th 'Default';
     th 'Config';
     th colspan => 3, 'Settings';
+    th 'User level';
    end;
    for my $c (@$cards) {
      Tr !$c->{active} ? (class => 'inactive') : ();
@@ -145,6 +160,9 @@ sub list {
        } else {
          a href => '#', class => 'off', 'no export data';
        }
+      end;
+      td;
+        a href => '#', onclick => sprintf('return conf_select("rack", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
       end;
      end;
    }
@@ -513,35 +531,42 @@ sub ajax {
     { name => 'field', template => 'asciiprint' }, # should have an enum property
     { name => 'item', required => 1, regex => [qr/^[0-9a-f]{8}$/i] },
     { name => 'export', required => 0, maxlength => 32, minlength => 1 },
+    { name => 'user_level_from_console', required =>0, enum => [0,1,2,3,4] },
   );
   return 404 if $f->{_err};
 
-  my $i = $self->dbRow("SELECT (id).man, (id).prod, firm_major FROM addresses WHERE addr = ?  ", oct "0x$f->{item}");
-  $self->dbExec("DELETE FROM predefined_node_config WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
-  $self->dbExec("DELETE FROM predefined_node_defaults WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
+  if ($f->{field} eq 'export') {
+    my $i = $self->dbRow("SELECT (id).man, (id).prod, firm_major FROM addresses WHERE addr = ?  ", oct "0x$f->{item}");
+    $self->dbExec("DELETE FROM predefined_node_config WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
+    $self->dbExec("DELETE FROM predefined_node_defaults WHERE man_id = ? AND prod_id = ? AND firm_major = ? AND cfg_name = ?", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export});
 
-  my $obj_cfgs = $self->dbAll("SELECT object, (func).type,
-                               CASE
-                                WHEN (func).type = 5 THEN (SELECT pos FROM src_config WHERE number = ((func).seq+1))
-                                WHEN (func).type = 6 THEN (SELECT pos FROM dest_config WHERE number = ((func).seq+1))
-                               ELSE (func).seq
-                               END AS seq,
-                               (func).func,
-                               label, user_level0, user_level1, user_level2, user_level3, user_level4, user_level5
-                               FROM node_config WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
-  for my $o (@$obj_cfgs) {
-    my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}, $o->{func});
-    $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func,
-                               label, user_level0, user_level1, user_level2, user_level3, user_level4, user_level5)
-                               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func,
-                               $o->{label}, $o->{user_level0}, $o->{user_level1}, $o->{user_level2}, $o->{user_level3}, $o->{user_level4}, $o->{user_level5});
-  }
+    my $obj_cfgs = $self->dbAll("SELECT object, (func).type,
+                                 CASE
+                                  WHEN (func).type = 5 THEN (SELECT pos FROM src_config WHERE number = ((func).seq+1))
+                                  WHEN (func).type = 6 THEN (SELECT pos FROM dest_config WHERE number = ((func).seq+1))
+                                 ELSE (func).seq
+                                 END AS seq,
+                                 (func).func,
+                                 label, user_level0, user_level1, user_level2, user_level3, user_level4, user_level5
+                                 FROM node_config WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
+    for my $o (@$obj_cfgs) {
+      my $new_func = sprintf("(%d,%d,%d)", $o->{type}, $o->{seq}, $o->{func});
+      $self->dbExec("INSERT INTO predefined_node_config (man_id, prod_id, firm_major, cfg_name, object, func,
+                                 label, user_level0, user_level1, user_level2, user_level3, user_level4, user_level5)
+                                 VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $new_func,
+                                 $o->{label}, $o->{user_level0}, $o->{user_level1}, $o->{user_level2}, $o->{user_level3}, $o->{user_level4}, $o->{user_level5});
+    }
 
-  my $obj_dflts = $self->dbAll("SELECT object, data FROM defaults WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
-  for my $o (@$obj_dflts) {
-    $self->dbExec("INSERT INTO predefined_node_defaults (man_id, prod_id, firm_major, cfg_name, object, data) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $o->{data});
+    my $obj_dflts = $self->dbAll("SELECT object, data FROM defaults WHERE addr = ? AND firm_major = ?", oct "0x$f->{item}", $i->{firm_major});
+    for my $o (@$obj_dflts) {
+      $self->dbExec("INSERT INTO predefined_node_defaults (man_id, prod_id, firm_major, cfg_name, object, data) VALUES(?,?,?,?,?,?)", $i->{man}, $i->{prod}, $i->{firm_major}, $f->{export}, $o->{object}, $o->{data});
+    }
+    txt $f->{export};
+  } elsif ($f->{field} eq 'user_level_from_console') {
+    $self->dbExec("UPDATE addresses SET user_level_from_console = ? WHERE addr = ?", $f->{$f->{field}}, oct "0x$f->{item}");
+    #used rack in the link, because surface/rack make no differenct for the user_level_from_console ajax communication
+    a href => '#', onclick => sprintf('return conf_select("surface", "%08X", "%s", "%s", this, "console_list")', oct "0x$f->{item}", 'user_level_from_console', $f->{user_level_from_console}), $user_level_from_names[$f->{user_level_from_console}];
   }
-  txt $f->{export};
 }
 
 sub loadpre {

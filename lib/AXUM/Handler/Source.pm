@@ -4,7 +4,6 @@ package AXUM::Handler::Source;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
 
 
 YAWF::register(
