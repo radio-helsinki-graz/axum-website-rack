@@ -178,7 +178,7 @@ sub _col {
     $v = 0 if (!defined $v);
     a href => '#', onclick => sprintf('return conf_text("setlabel/%08X", "%d", "%s", "%s", this, "Label", "Save")', oct "0x$addr", $d->{number}, $n, $v), $v ? ($v) : (class => 'off' , 'none');
   }
-  if ($n =~ /user_level[0-5]/)
+  if ($n =~ /^user_level[0-5]/)
   {
     if ($d->{sensor_type}) {
       if (defined $v) {
@@ -189,6 +189,16 @@ sub _col {
         }
       }
     }
+  }
+  if ($n =~ /^all_user_level([0-5])/)
+  {
+    my @user_level_names  = ('Idle', 'Unkown', 'Operator 1', 'Operator 2', 'Supervisor 1', 'Supervisor 2');
+
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 1), 'y';
+    txt ' / ';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 0), 'n';
+    txt ' / ';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 2), class => 'off', 'd';
   }
 }
 
@@ -268,19 +278,24 @@ sub conf {
     th colspan => 7, 'User level';
    end;
    Tr;
-    th 'Nr.';
-    th 'Description';
-    th 'Type';
-    th 'Default';
-    th 'Function';
-    th 'Local';
-    th 'Default';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr.';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Description';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Type';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Default';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Function';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Local';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Default';
     th 'Idle';
     th 'Unkown';
     th 'Operator 1';
     th 'Operator 2';
     th 'Supervisor 1';
     th 'Supervisor 2';
+   end;
+   Tr;
+    for (0..5) {
+      td; _col "all_user_level$_", {}, $addr; end;
+    }
    end;
    for my $o (@$objects) {
      Tr;
@@ -453,30 +468,41 @@ sub setuserlevel {
   );
   return 404 if $f->{_err};
 
-  if ($f->{$f->{field}} < 2) {
-    $self->dbExec("UPDATE node_config SET $f->{field} = ? WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", $f->{$f->{field}}, oct "0x$addr", $f->{item}, oct "0x$addr");
-  } else {
-    $self->dbExec("UPDATE node_config SET $f->{field} = NULL WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", oct "0x$addr", $f->{item}, oct "0x$addr");
+
+  if ($f->{item} eq 'all') {
+    if ($f->{$f->{field}} < 2) {
+      $self->dbExec("UPDATE node_config SET $f->{field} = ? WHERE addr = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", $f->{$f->{field}}, oct "0x$addr", oct "0x$addr");
+    } else {
+      $self->dbExec("UPDATE node_config SET $f->{field} = NULL WHERE addr = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", oct "0x$addr", oct "0x$addr");
+    }
+
+    txt 'Wait for reload';
   }
+  else {
+    if ($f->{$f->{field}} < 2) {
+      $self->dbExec("UPDATE node_config SET $f->{field} = ? WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", $f->{$f->{field}}, oct "0x$addr", $f->{item}, oct "0x$addr");
+    } else {
+      $self->dbExec("UPDATE node_config SET $f->{field} = NULL WHERE addr = ? AND object = ? AND firm_major = (SELECT a.firm_major FROM addresses a WHERE a.addr = ?)", oct "0x$addr", $f->{item}, oct "0x$addr");
+    }
+    my $o = $self->dbRow('
+        SELECT t.number, t.sensor_type,
+               c.user_level0, c.user_level1, c.user_level2, c.user_level3, c.user_level4, c.user_level5,
+               f.user_level0 AS func_user_level0,
+               f.user_level1 AS func_user_level1,
+               f.user_level2 AS func_user_level2,
+               f.user_level3 AS func_user_level3,
+               f.user_level4 AS func_user_level4,
+               f.user_level5 AS func_user_level5
+        FROM templates t
+        JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
+        LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
+        LEFT JOIN functions f ON ((c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type))
+        WHERE a.addr = ? AND t.number= ? ORDER BY t.number',
+      oct "0x$addr", $f->{item}
+    );
 
-  my $o = $self->dbRow('
-      SELECT t.number, t.sensor_type,
-             c.user_level0, c.user_level1, c.user_level2, c.user_level3, c.user_level4, c.user_level5,
-             f.user_level0 AS func_user_level0,
-             f.user_level1 AS func_user_level1,
-             f.user_level2 AS func_user_level2,
-             f.user_level3 AS func_user_level3,
-             f.user_level4 AS func_user_level4,
-             f.user_level5 AS func_user_level5
-      FROM templates t
-      JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
-      LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
-      LEFT JOIN functions f ON ((c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type))
-      WHERE a.addr = ? AND t.number= ? ORDER BY t.number',
-    oct "0x$addr", $f->{item}
-  );
-
-  txt _col $f->{field}, $o, $addr;
+    txt _col $f->{field}, $o, $addr;
+  }
 }
 
 sub setdefault {

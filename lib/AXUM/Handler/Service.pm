@@ -48,10 +48,17 @@ sub _col {
   if ($n eq 'label') {
     a href => '#', onclick => sprintf('return conf_text("service", "%d|%d|%d|%d", "%s", "%s", this, "Label", "Save")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v), $v;
   }
-  if ($n =~ /user_level[0-5]/) {
+  if ($n =~ /^user_level[0-5]/) {
     if ($d->{rcv_type} != 0) {
       a href => '#', onclick => sprintf('return conf_set("service", "%d|%d|%d|%d", "%s", "%s", this)', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
     }
+  }
+  if ($n =~ /^all_user_level([0-5])/) {
+    my @user_level_names  = ('Idle', 'Unkown', 'Operator 1', 'Operator 2', 'Supervisor 1', 'Supervisor 2');
+
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("service", "all", "user_level%d", "%s", this)}', $user_level_names[$1], $1, 1), 'y';
+    txt ' / ';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("service", "all", "user_level%d", "%s", this)}', $user_level_names[$1], $1, 0), 'n';
   }
 }
 
@@ -77,7 +84,25 @@ sub functions {
 
   table;
    Tr; th colspan => 12, $self->OEMFullProductName().' functions'; end;
-   Tr; th 'pos'; th 'type'; th 'function'; th 'rcv'; th 'xmt'; th 'label'; th 'idle'; th 'unkn'; th 'oper1'; th 'oper2'; th 'super1'; th 'super2'; end;
+   Tr;
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'pos';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'type';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'function';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'rcv';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'xmt';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'label';
+    th 'idle';
+    th 'unkn';
+    th 'oper1';
+    th 'oper2';
+    th 'super1';
+    th 'super2';
+   end;
+   Tr;
+    for (0..5) {
+      td; _col "all_user_level$_"; end;
+    }
+   end;
    for my $s (@$src) {
      Tr;
       th; _col 'pos', $s; end;
@@ -140,17 +165,20 @@ sub ajax {
   }
   if ($f->{field} =~ /user_level([0-5])/)
   {
-    $f->{item} =~ /(\d+)\|(\d+)\|(\d+)\|(\d+)/;
-    my $rcv_type = $1;
-    my $xmt_type = $2;
-    my $type = $3;
-    my $func = $4;
-
     my $db_data = $f->{$f->{field}} ? ('true') : ('false');
+    if ($f->{item} =~ /(\d+)\|(\d+)\|(\d+)\|(\d+)/) {
+      my $rcv_type = $1;
+      my $xmt_type = $2;
+      my $type = $3;
+      my $func = $4;
 
-    $self->dbExec("UPDATE functions SET $f->{field} = $db_data
-                   WHERE rcv_type = $rcv_type AND xmt_type = $xmt_type AND (func).type = $type AND (func).func = $func;");
-    txt _col $f->{field}, {$f->{field} => $f->{$f->{field}}, rcv_type => $rcv_type, xmt_type => $xmt_type, type => $type, func => $func};
+      $self->dbExec("UPDATE functions SET $f->{field} = $db_data
+                     WHERE rcv_type = $rcv_type AND xmt_type = $xmt_type AND (func).type = $type AND (func).func = $func;");
+      txt _col $f->{field}, {$f->{field} => $f->{$f->{field}}, rcv_type => $rcv_type, xmt_type => $xmt_type, type => $type, func => $func};
+    } else {
+      $self->dbExec("UPDATE functions SET $f->{field} = $db_data;");
+      txt 'Wait for reload';
+    }
   }
 }
 

@@ -101,7 +101,10 @@ function conf_set_remove(page, item, field, value, obj, remove) {
     if (remove) {
       remove_input(input_obj);
     }
-    if((((page == 'source') || (page == 'users') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account'))
+    if((((page == 'source') || (page == 'users') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account') ||
+        ((page == 'service') && (item == 'all')) ||
+        ((page.match('^setuserlevel') == 'setuserlevel') && (item == 'all'))
+      )
     {
       location.reload(true);
     }
