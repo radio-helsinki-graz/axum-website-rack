@@ -11,9 +11,11 @@ YAWF::register(
   qr{service/functions} => \&functions,
   qr{service/versions} => \&versions,
   qr{service/password} => \&password,
+  qr{service/ssh} => \&ssh,
   qr{ajax/service} => \&ajax,
   qr{ajax/service/account} => \&set_account,
   qr{ajax/service/user_level} => \&set_user_level,
+  qr{ajax/service/state} => \&server_state,
 );
 
 my @mbn_types = ('no data', 'unsigned int', 'signed int', 'state', 'octet string', 'float', 'bit string');
@@ -21,19 +23,21 @@ my @func_types = ('Module', 'Buss', 'Monitor buss', 'None', 'Global', 'Source', 
 
 sub service {
   my $self = shift;
+  my $i=1;
 
   $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service');
   table;
    Tr; th colspan => 2, $self->OEMFullProductName().' service'; end;
-   Tr; th 1; td; a href => '/service/mambanet', 'MambaNet node overview'; end; end;
-   Tr; th 2; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current sources and generate new sources?", "/source/generate")', 'Generate sources'; end; end;
-   Tr; th 3; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current destination and generate new destinations?", "/dest/generate")', 'Generate destinations'; end; end;
-   Tr; th 4; td; a href => '/service/templates', 'Templates'; end; end;
-   Tr; th 5; td; a href => '/service/predefined', 'Stored configurations'; end; end;
-   Tr; th 6; td; a href => '/service/functions', 'Engine functions'; end; end;
-   Tr; th 7; td; a href => '/service/versions?pkg='.$self->OEMShortProductName(), 'Package versions'; end; end;
-   Tr; th 8; td; a href => '#', onclick => "window.location = 'http://'+window.location.host+':6565'", 'Download backup'; end; end;
-   Tr; th 9; td; a href => '/service/password', 'Change password'; end; end;
+   Tr; th $i++; td; a href => '/service/mambanet', 'MambaNet node overview'; end; end;
+   Tr; th $i++; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current sources and generate new sources?", "/source/generate")', 'Generate sources'; end; end;
+   Tr; th $i++; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current destination and generate new destinations?", "/dest/generate")', 'Generate destinations'; end; end;
+   Tr; th $i++; td; a href => '/service/templates', 'Templates'; end; end;
+   Tr; th $i++; td; a href => '/service/predefined', 'Stored configurations'; end; end;
+   Tr; th $i++; td; a href => '/service/functions', 'Engine functions'; end; end;
+   Tr; th $i++; td; a href => '/service/versions?pkg='.$self->OEMShortProductName(), 'Package versions'; end; end;
+   Tr; th $i++; td; a href => '#', onclick => "window.location = 'http://'+window.location.host+':6565'", 'Download backup'; end; end;
+   Tr; th $i++; td; a href => '/service/password', 'Change password'; end; end;
+   Tr; th $i++; td; a href => '/service/ssh', 'SSH'; end; end;
   end;
   $self->htmlFooter;
 }
@@ -294,6 +298,75 @@ sub set_account {
   $array[$f->{item}] =~ m/(.*):(.*)/;
   _password_col $f->{field}, { line => $f->{item}, user => $1, password => $2};
 }
+
+sub ssh {
+  my $self = shift;
+
+  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'ssh');
+
+  table;
+   Tr; th colspan => 4, $self->OEMFullProductName().' server'; end;
+   Tr;
+    th 'name';
+    th 'protocol';
+    th 'port';
+    th 'state';
+   end;
+   Tr;
+    th 'ssh';
+    td 'TCP';
+    td '22';
+    td;
+      my @array;
+      open(FILE, '/etc/hosts.allow');
+      @array = <FILE>;
+      for my $i (0..$#array) {
+        if ($array[$i] =~ /^ALL: (.*)/) {
+          if ($1 =~ /EXCEPT sshd/) {
+            a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 1, this)'), 'disabled';
+          } else {
+            a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 0, this)'), 'enabled';
+          }
+        }
+      }
+    end;
+   end;
+  end;
+  $self->htmlFooter;
+}
+
+sub server_state {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'field', template => 'asciiprint' },
+    { name => 'item', template => 'asciiprint' },
+    { name => 'state', required => 0, template => 'int' },
+  );
+  return 404 if $f->{_err};
+
+  my @array;
+  open(FILE, '/etc/hosts.allow');
+  @array = <FILE>;
+  for my $i (0..$#array) {
+    if ($array[$i] =~ /^ALL: (.*)/) {
+      if ($f->{$f->{field}}) {
+        $array[$i] =~ s/^ALL: (.*)/ALL: ALL/;
+        a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 0, this)'), 'enabled';
+      } else {
+        $array[$i] =~ s/^ALL: (.*)/ALL: EXCEPT sshd/;
+        a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 1, this)'), 'disabled';
+      }
+    }
+  }
+  my @result = grep(/[^\s]/,@array);
+  close FILE;
+
+  open(FILE, '>/etc/hosts.allow');
+  print FILE @result;
+  close FILE;
+}
+
 
 1;
 
