@@ -90,6 +90,32 @@ function conf_set(page, item, field, value, obj) {
   conf_set_remove(page, item, field, value, obj, 1);
 }
 
+function ajax_timed_write(obj, resp_text) {
+  var i=0;
+  obj.innerHTML = "Writing... (7)";
+  setTimeout( function() {
+    obj.innerHTML = "Writing... (6)";
+  }, 1000);
+  setTimeout( function() {
+    obj.innerHTML = "Writing... (5)";
+  }, 2000);
+  setTimeout( function() {
+    obj.innerHTML = "Writing... (4)";
+  }, 3000);
+  setTimeout( function() {
+    obj.innerHTML = "Writing... (3)";
+  }, 4000);
+  setTimeout( function() {
+    obj.innerHTML = "Writing... (2)";
+  }, 5000);
+  setTimeout( function() {
+    obj.innerHTML = "Writing... (1)";
+  }, 6000);
+  setTimeout( function() {
+    obj.innerHTML = resp_text;
+  }, 7000);
+}
+
 function conf_set_remove(page, item, field, value, obj, remove) {
   if(obj == null)
     obj = this;
@@ -97,9 +123,13 @@ function conf_set_remove(page, item, field, value, obj, remove) {
     obj = obj.parentNode;
 //  alert('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value));
   ajax('/ajax/'+page+'?item='+item+';field='+field+';'+field+'='+encodeURIComponent(value), function(h) {
-    obj.innerHTML = h.responseText;
     if (remove) {
       remove_input(input_obj);
+    }
+    if (page == 'users/write') {
+      ajax_timed_write(obj, h.responseText);
+    } else {
+      obj.innerHTML = h.responseText;
     }
     if((((page == 'source') || (page == 'users') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account') ||
         ((page == 'service') && (item == 'all')) ||
