@@ -325,7 +325,7 @@ sub ssh {
           if ($1 =~ /EXCEPT sshd/) {
             a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 1, this)'), 'disabled';
           } else {
-            a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 0, this)'), 'enabled';
+            a href => '#', onclick => sprintf('if (confirm("Are you sure to disabled SSH?\n(WARNING: remote support will be not possible!)")) { return conf_set("service/state", "ssh", "state", 0, this) }'), 'enabled';
           }
         }
       }
@@ -352,7 +352,7 @@ sub server_state {
     if ($array[$i] =~ /^ALL: (.*)/) {
       if ($f->{$f->{field}}) {
         $array[$i] =~ s/^ALL: (.*)/ALL: ALL/;
-        a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 0, this)'), 'enabled';
+        a href => '#', onclick => sprintf('if (confirm("Are you sure to disabled SSH?\n(WARNING: remote support will be not possible!)")) { return conf_set("service/state", "ssh", "state", 0, this) }'), 'enabled';
       } else {
         $array[$i] =~ s/^ALL: (.*)/ALL: EXCEPT sshd/;
         a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 1, this)'), 'disabled';
