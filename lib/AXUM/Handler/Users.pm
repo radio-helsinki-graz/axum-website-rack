@@ -62,8 +62,23 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
     ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
   }
-  if ($n =~ /username[1|2|3|4]/) {
-    txt $v;
+  if ($n =~ /username([1|2|3|4])/) {
+    if ($v ne '') {
+      table width => '100%';
+       Tr;
+        td style => 'border: 0px', width => '100%'; txt $v; end;
+        td style => 'border: 0px', aligh => 'right';
+          if (!$d->{"${n}found"}) {
+            form method => 'POST';
+             input type=>'hidden', name=>'username', value => $v;
+             input type=>'hidden', name=>'password', value => $d->{"password$1"};
+             input type=>'submit', value => 'Add';
+            end;
+          }
+        end;
+       end;
+      end;
+    }
   }
 }
 
@@ -122,7 +137,12 @@ sub user_overview {
                                     console1_presetpool, console2_presetpool, console3_presetpool, console4_presetpool
                              FROM users ORDER BY pos|);
 
-  my $g = $self->dbRow(q|SELECT username1, username2, username3, username4 FROM global_config|);
+  my $g = $self->dbRow(q|SELECT username1, username2, username3, username4, password1, password2, password3, password4,
+                                (SELECT COUNT(*) FROM users WHERE username = username1 AND password = password1) AS username1found,
+                                (SELECT COUNT(*) FROM users WHERE username = username2 AND password = password2) AS username2found,
+                                (SELECT COUNT(*) FROM users WHERE username = username3 AND password = password3) AS username3found,
+                                (SELECT COUNT(*) FROM users WHERE username = username4 AND password = password4) AS username4found
+                         FROM global_config|);
 
   my $console_presets = $self->dbAll(q|SELECT pos, number, label FROM console_preset ORDER BY pos|);
   my $max_pos;
