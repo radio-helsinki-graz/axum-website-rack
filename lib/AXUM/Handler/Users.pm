@@ -62,6 +62,9 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
     ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
   }
+  if ($n =~ /username[1|2|3|4]/) {
+    txt $v;
+  }
 }
 
 sub _create_user {
@@ -119,6 +122,8 @@ sub user_overview {
                                     console1_presetpool, console2_presetpool, console3_presetpool, console4_presetpool
                              FROM users ORDER BY pos|);
 
+  my $g = $self->dbRow(q|SELECT username1, username2, username3, username4 FROM global_config|);
+
   my $console_presets = $self->dbAll(q|SELECT pos, number, label FROM console_preset ORDER BY pos|);
   my $max_pos;
 
@@ -175,6 +180,15 @@ sub user_overview {
       td colspan => 4;
         _col "console${_}_login";
         _col "console${_}_write";
+      end;
+    }
+    td '';
+   end;
+   Tr;
+    td colspan => 3, 'Chipcard account';
+    for (1..4) {
+      td colspan => 4;
+        _col "username$_", $g;
       end;
     }
     td '';
