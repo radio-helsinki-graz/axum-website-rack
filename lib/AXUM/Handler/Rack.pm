@@ -123,7 +123,7 @@ sub list {
    Tr;
     th 'Slot';
     th 'MambaNet Address';
-    th 'Card name';
+    th 'Node name';
     th 'Inputs';
     th 'Outputs';
     th 'Default';
