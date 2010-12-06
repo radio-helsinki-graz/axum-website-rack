@@ -61,14 +61,14 @@ sub overview {
     LEFT JOIN matrix_sources f ON f.number = m.source_f
     LEFT JOIN matrix_sources g ON g.number = m.source_g
     LEFT JOIN matrix_sources h ON h.number = m.source_h
-    LEFT JOIN src_preset pa ON pa.number = m.source_a_preset
-    LEFT JOIN src_preset pb ON pb.number = m.source_b_preset
-    LEFT JOIN src_preset pc ON pc.number = m.source_c_preset
-    LEFT JOIN src_preset pd ON pd.number = m.source_d_preset
-    LEFT JOIN src_preset pe ON pe.number = m.source_e_preset
-    LEFT JOIN src_preset pf ON pf.number = m.source_f_preset
-    LEFT JOIN src_preset pg ON pg.number = m.source_g_preset
-    LEFT JOIN src_preset ph ON ph.number = m.source_h_preset
+    LEFT JOIN processing_presets pa ON pa.number = m.source_a_preset
+    LEFT JOIN processing_presets pb ON pb.number = m.source_b_preset
+    LEFT JOIN processing_presets pc ON pc.number = m.source_c_preset
+    LEFT JOIN processing_presets pd ON pd.number = m.source_d_preset
+    LEFT JOIN processing_presets pe ON pe.number = m.source_e_preset
+    LEFT JOIN processing_presets pf ON pf.number = m.source_f_preset
+    LEFT JOIN processing_presets pg ON pg.number = m.source_g_preset
+    LEFT JOIN processing_presets ph ON ph.number = m.source_h_preset
     WHERE m.number >= ? AND m.number <= ?
     ORDER BY m.number|,
     $bsel, $p*32-31, $p*32
@@ -206,7 +206,7 @@ sub _col {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "src_preset_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "processing_preset_list")', $d->{number}, $n, $v),
       !$v ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
   if($n eq 'overrule_active') {
@@ -477,15 +477,14 @@ sub conf {
 
   my $pos_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, label, type, active FROM matrix_sources ORDER BY number|);
-  my $src_preset_lst = $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|);
+  my $processing_preset_lst = $self->dbAll(q|SELECT number, label FROM processing_presets ORDER BY pos|);
   my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
 
   $self->htmlHeader(page => 'module', section => $nr, title => "Module $nr configuration");
   $self->htmlSourceList($pos_lst, 'matrix_sources');
-  div id => 'src_preset_list', class => 'hidden';
+  div id => 'processing_preset_list', class => 'hidden';
     Select;
-      option value => 0, 'none';
-      for (@$src_preset_lst) {
+      for (@$processing_preset_lst) {
         option value => $_->{number}, $_->{label};
       }
     end;
@@ -551,7 +550,7 @@ sub conf {
      }
      th ((ord($s)&1) ? ('A'):('B'));
      td; _col "source_$s", $mod, $src_lst; end;
-     td; _col "source_${s}_preset", $mod, $src_preset_lst; end;
+     td; _col "source_${s}_preset", $mod, $processing_preset_lst; end;
      td; a href => "#", onclick => "return conf_rtng(\"module/$nr\", this, \"$s\")", ($u == 0) ? (class => 'off', 'none') : ('active'); end;
      if ($s eq 'a') {
       td rowspan=>8; _col 'overrule_active', $mod; end;
@@ -688,7 +687,7 @@ sub ajax {
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
-    $f->{field} =~ /source_[a|b|c|d|e|f|g|h]_preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : (
+    $f->{field} =~ /source_[a|b|c|d|e|f|g|h]_preset/ ? $self->dbAll(q|SELECT number, label FROM processing_presets ORDER BY pos|) : (
       $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ()
     );
 }
