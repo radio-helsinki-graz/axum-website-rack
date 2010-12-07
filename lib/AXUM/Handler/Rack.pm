@@ -214,6 +214,7 @@ sub _funcname {
      ($f2<128) ? (txt 'Module '.($f2+1).': ') : (txt 'Module selected '.($f2-127).': ') if $f1 == 0;
      ($f2<16) ? (txt $buss->[$f2].': ') : (txt 'Buss selected '.($f2-15).': ') if $f1 == 1;
      ($f2<16) ? (txt $self->dbRow('SELECT label FROM monitor_buss_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Monitor buss selected '.($f2-15).': ') if $f1 == 2;
+     txt 'Console '.($f2+1),': ' if $f1 == 3;
      ($f2<1280) ? (txt $self->dbRow('SELECT label FROM src_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Source selected '.($f2-1279).': ') if $f1 == 5;
      ($f2<1280) ? (txt $self->dbRow('SELECT label FROM dest_config WHERE number = ?', $f2+1)->{label}.': ') : (txt 'Destination selected '.($f2-1279).': ') if $f1 == 6;
      if ($name =~ /Console preset (\d+)/)
@@ -356,6 +357,7 @@ sub funclist {
    option value => 0, 'Module' if $func[0];
    option value => 1, 'Buss' if $func[1];
    option value => 2, 'Monitor buss' if $func[2];
+   option value => 3, 'Console' if $func[3];
    option value => 4, 'Global' if $func[4];
    option value => 5, 'Source' if $func[5];
    option value => 6, 'Destination' if $func[6];
@@ -385,6 +387,14 @@ sub funclist {
      option value => $_, 'Selected '.($_-15) for (16..19);
     end; Select;
      option value => $_->{func}, $_->{name} for @{$func[2]};
+    end; end;
+  }
+  # console functions
+  if ($func[3]) {
+    div id => 'func_3'; Select;
+     option value => $_, ($_+1) for (0..3);
+    end; Select;
+     option value => $_->{func}, $_->{name} for @{$func[3]};
     end; end;
   }
   # global functions

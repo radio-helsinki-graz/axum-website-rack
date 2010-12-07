@@ -19,7 +19,7 @@ YAWF::register(
 );
 
 my @mbn_types = ('no data', 'unsigned int', 'signed int', 'state', 'octet string', 'float', 'bit string');
-my @func_types = ('Module', 'Buss', 'Monitor buss', 'None', 'Global', 'Source', 'Destination');
+my @func_types = ('Module', 'Buss', 'Monitor buss', 'Console', 'Global', 'Source', 'Destination');
 
 sub service {
   my $self = shift;
