@@ -7,10 +7,10 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{source}            	  => \&source,
-  qr{source/generate}   	  => \&generate,
-  qr{ajax/source}       	  => \&ajax,
-  qr{ajax/source/([1-9][0-9]*)/eq} => \&eqajax,
+  qr{config/source}            	  => \&source,
+  qr{config/source/generate}   	  => \&generate,
+  qr{ajax/config/source}       	  => \&ajax,
+  qr{ajax/config/source/([1-9][0-9]*)/eq} => \&eqajax,
 );
 
 my @start_trigger_types = ('Dedicated', 'Module fader on', 'Module on', 'Module fader & on active');
@@ -32,47 +32,50 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", "%s", this, "source_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/source", %d, "%s", "%s", this, "source_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("source", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/source", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if($n eq 'input_gain') {
-    a href => '#', onclick => sprintf('return conf_level("source", %d, "input_gain", %f, this)', $d->{number}, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/source", %d, "input_gain", %f, this)', $d->{number}, $v),
       $v == 30 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n eq 'input_phantom' || $n eq 'input_pad') {
-    a href => '#', onclick => sprintf('return conf_set("source", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/source", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       !$v ? (class => 'off', 'no') : 'yes';
   }
   if($n =~ /(?:redlight|monitormute)/) {
-    a href => '#', onclick => sprintf('return conf_set("source", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/source", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       !$v ? (class => 'off', 'n') : 'y';
   }
   if($n =~ /^input([12])/) {
     $v = (grep $_->{addr} == $d->{'input'.$1.'_addr'} && $_->{channel} == $d->{'input'.$1.'_sub_ch'}, @{$_[2]})[0];
     a href => '#', $v->{active} ? () : (class => 'off'), onclick => sprintf(
-      'return conf_select("source", %d, "%s", "%s", this, "input_channels")', $d->{number}, $n, ($d->{'input'.$1.'_addr'}?("$v->{addr}_$v->{channel}"):('0_0'))),
+      'return conf_select("config/source", %d, "%s", "%s", this, "input_channels")', $d->{number}, $n, ($d->{'input'.$1.'_addr'}?("$v->{addr}_$v->{channel}"):('0_0'))),
       ($d->{'input'.$1.'_addr'}?(sprintf('Slot %d ch %d', $v->{slot_nr}, $v->{channel})):('none'));
   }
   if ($n eq 'default_src_preset') {
     my $s;
+
+    $v = 0 if not defined $v;
+
     for my $l (@$lst) {
       if ($l->{number} == $v)
       {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "src_preset_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/source", %d, "%s", %d, this, "src_preset_list")', $d->{number}, $n, $v),
       !$v ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
   if ($n eq 'start_trigger') {
-    a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "start_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $start_trigger_types[$v];
+    a href => '#', onclick => sprintf('return conf_select("config/source", %d, "%s", %d, this, "start_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $start_trigger_types[$v];
   }
   if ($n eq 'stop_trigger') {
-    a href => '#', onclick => sprintf('return conf_select("source", %d, "%s", %d, this, "stop_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $stop_trigger_types[$v];
+    a href => '#', onclick => sprintf('return conf_select("config/source", %d, "%s", %d, this, "stop_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $stop_trigger_types[$v];
   }
 }
 
@@ -100,7 +103,7 @@ sub _create_source {
   $self->dbExec("INSERT INTO src_config (number, label, input1_addr, input1_sub_ch, input2_addr, input2_sub_ch)
                  VALUES ($num, '$f->{label}', $inputs[0], $inputs[1], $inputs[2], $inputs[3])");
   $self->dbExec("SELECT src_config_renumber()");
-  $self->resRedirect('/source', 'post');
+  $self->resRedirect('/config/source', 'post');
 }
 
 sub source {
@@ -116,7 +119,7 @@ sub source {
   if(!$f->{_err}) {
     $self->dbExec('DELETE FROM src_config WHERE number = ?', $f->{del});
     $self->dbExec("SELECT src_config_renumber()");
-    return $self->resRedirect('/source', 'temp');
+    return $self->resRedirect('/config/source', 'temp');
   }
 
   my $mb = $self->dbAll('SELECT number, label, number <= dsp_count()*4 AS active
@@ -130,7 +133,7 @@ sub source {
 
   my $src_preset_lst = $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Source configuration', page => 'source');
+  $self->htmlHeader(title => 'Source configuration', area => 'config', page => 'source');
   # create list of available channels for javascript
   div id => 'src_preset_list', class => 'hidden';
     Select;
@@ -239,7 +242,7 @@ sub source {
         td $_->{active} ? (class => "exp_monitormute$_->{number}") : (class => "exp_monitormute$_->{number} inactive"); _col "monitormute$_->{number}", $s; end;
       }
       td;
-       a href => '/source?del='.$s->{number}, title => 'Delete';
+       a href => '/config/source?del='.$s->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
@@ -277,7 +280,7 @@ sub generate {
       $self->dbExec("SELECT src_config_renumber()");
     }
   }
-  $self->resRedirect('/source', 'post');
+  $self->resRedirect('/config/source', 'post');
 }
 
 sub ajax {

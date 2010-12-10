@@ -7,8 +7,8 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{monitorbuss} => \&monitorbuss,
-  qr{ajax/monitorbuss} => \&ajax,
+  qr{config/monitorbuss} => \&monitorbuss,
+  qr{ajax/config/monitorbuss} => \&ajax,
 );
 
 
@@ -31,27 +31,26 @@ sub _col {
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("monitorbuss", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/monitorbuss", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if($n eq 'interlock') {
-    a href => '#', onclick => sprintf('return conf_set("monitorbuss", %d, "interlock", "%s", this)', $d->{number}, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/monitorbuss", %d, "interlock", "%s", this)', $d->{number}, $v?0:1),
       !$v ? (class => 'off', 'no') : 'yes';
   }
   if($n =~ /buss_/) {
-    a href => '#', onclick => sprintf('return conf_set("monitorbuss", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/monitorbuss", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       !$v ? (class => 'off', 'n') : 'y';
   }
   if($n eq 'dim_level') {
-    a href => '#', onclick => sprintf('return conf_level("monitorbuss", %d, "dim_level", %f, this)', $d->{number}, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/monitorbuss", %d, "dim_level", %f, this)', $d->{number}, $v),
       $v == -20 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n eq 'default_selection') {
-    a href => '#', onclick => sprintf(
-      'return conf_select("monitorbuss", %d, "default_selection", %d, this, "default_selection_items")',
+    a href => '#', onclick => sprintf('return conf_select("config/monitorbuss", %d, "default_selection", %d, this, "default_selection_items")',
       $d->{number}, $v), $_[2][$v];
   }
   if($n eq 'console') {
-    a href => '#', onclick => sprintf('return conf_select("monitorbuss", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/monitorbuss", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
       $v;
   }
 }
@@ -65,7 +64,7 @@ sub monitorbuss {
   my $mb = $self->dbAll('SELECT number, label, interlock, default_selection, dim_level, !s, console,
     number <= dsp_count()*4 AS active FROM monitor_buss_config ORDER BY number', join ', ', @busses);
 
-  $self->htmlHeader(title => 'Monitor buss configuraiton', page => 'monitorbuss');
+  $self->htmlHeader(title => 'Monitor buss configuraiton', area => 'config', page => 'monitorbuss');
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, 'Console '.($_) for (1..4);

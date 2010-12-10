@@ -4,14 +4,14 @@ package AXUM::Handler::User;
 use strict;
 use warnings;
 use YAWF ':html';
-
+use Data::Dumper;
 
 YAWF::register(
-  qr{users}        => \&user_overview,
-  qr{users/([1-9][0-9]*)} => \&user,
-  qr{ajax/users}       	  => \&ajax,
-  qr{ajax/users/login}    => \&ajax_login,
-  qr{ajax/users/write}    => \&ajax_write_chipcard,
+  qr{config/users}        => \&user_overview,
+  qr{config/users/([1-9][0-9]*)} => \&user,
+  qr{ajax/config/users}       	  => \&ajax,
+  qr{ajax/config/users/login}    => \&ajax_login,
+  qr{ajax/config/users/write}    => \&ajax_write_chipcard,
 );
 
 my @user_levels = ('Idle', 'Unknown user', 'Operator 1', 'Operator 2', 'Supervisor 1', 'Supervisor 2', 'Administrator');
@@ -22,56 +22,68 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", "%s", this, "user_pos_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/users", %d, "%s", "%s", this, "user_pos_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($n eq 'username') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("users", %d, "%s", "%s", this)', $d->{number}, $n, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/users", %d, "%s", "%s", this)', $d->{number}, $n, $jsval), $v;
   }
   if($n eq 'password') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_pass("users", %d, "%s", "%s", this)', $d->{number}, $n, $jsval), "*****";
+    a href => '#', onclick => sprintf('return conf_pass("config/users", %d, "%s", "%s", this)', $d->{number}, $n, $jsval), "*****";
+  }
+  if ($n eq 'logout_to_idle') {
+    a href => '#', onclick => sprintf('return conf_set("config/users", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
   }
   if($n =~ /console([1|2|3|4])_user_level/) {
-    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "level_list", "Select user level ", "Save")', $d->{number}, $n, $v), ($v>1) ? () : (class => 'off'), $user_levels[$v];
+    a href => '#', onclick => sprintf('return conf_select("config/users", %d, "%s", %d, this, "level_list", "Select user level ", "Save")', $d->{number}, $n, $v), ($v>1) ? () : (class => 'off'), $user_levels[$v];
   }
   if($n =~ /console([1|2|3|4])_login/) {
-     input type => 'button', onclick => sprintf('return conf_select("users/login", %d, "%s", %d, this, "user_list", "Select user ", "Login")', $d->{number}, $n, $v), value => 'Login';
+     input type => 'button', onclick => sprintf('return conf_select("config/users/login", %d, "%s", %d, this, "user_list", "Select user ", "Login")', $1, $n, 0), value => 'Login';
   }
   if($n =~ /console([1|2|3|4])_write/) {
-     input type => 'button', onclick => sprintf('return conf_select("users/write", %d, "%s", %d, this, "user_list", "Select user ", "Write")', $d->{number}, $n, $v), value => 'Write';
+     input type => 'button', onclick => sprintf('return conf_select("config/users/write", %d, "%s", %d, this, "user_list", "Select user ", "Write")', $1, $n, 0), value => 'Write';
   }
   if($n =~ /console([1|2|3|4])_preset$/) {
     my $s;
+
+    $v = 0 if not defined $v;
+
     for my $l (@$lst) {
       if ($l->{number} == $v)
       {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "preset_list", "Select preset ", "Save")', $d->{number}, $n, $v),
-    ((not defined $v) or ($v == 'NULL')) ? ((class => 'off'), 'None') : $s->{label};
+    a href => '#', onclick => sprintf('return conf_select("config/users", %d, "%s", %d, this, "preset_list", "Select preset ", "Save")', $d->{number}, $n, $v),
+    ((not defined $v) or ($v == 0)) ? ((class => 'off'), 'None') : $s->{label};
+  }
+  if ($n =~ /console([1|2|3|4])_preset_load/) {
+    a href => '#', onclick => sprintf('return conf_set("config/users", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
   }
   if($n =~ /console([1|2|3|4])_sourcepool/) {
-    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
     ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
   }
   if($n =~ /console([1|2|3|4])_presetpool/) {
-    a href => '#', onclick => sprintf('return conf_select("users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/users", %d, "%s", %d, this, "pool_list", "Select pool ", "Save")', $d->{number}, $n, $v),
     ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
   }
-  if ($n =~ /username([1|2|3|4])/) {
-    if ($v ne '') {
+  if ($n =~ /active_username/) {
+    txt $v;
+  }
+  if ($n =~ /chipcard_username/) {
+    if ($d->{chipcard_username} ne '') {
       table width => '100%';
        Tr;
-        td style => 'border: 0px', width => '100%'; txt $v; end;
+        td style => 'border: 0px', width => '100%'; txt $d->{chipcard_username}; end;
         td style => 'border: 0px', aligh => 'right';
-          if (!$d->{"${n}found"}) {
+          if (!$d->{"accountfound"}) {
             form method => 'POST';
-             input type=>'hidden', name=>'username', value => $v;
-             input type=>'hidden', name=>'password', value => $d->{"password$1"};
+             input type=>'hidden', name=>'username', value => $d->{chipcard_username};
+             input type=>'hidden', name=>'password', value => $d->{chipcard_password};
              input type=>'submit', value => 'Add';
             end;
           }
@@ -107,12 +119,12 @@ sub _create_user {
       [ $num, $f->{username}, $f->{password}]);
 
     $self->dbExec("SELECT users_renumber()");
-    $self->resRedirect('/users', 'post');
+    $self->resRedirect('/config/users', 'post');
   } else {
     txt "Error: user '$f->{username}' already exists.";
     br;
     br;
-    a href => '/users', 'return';
+    a href => '/config/users', 'return';
   }
 }
 
@@ -128,26 +140,24 @@ sub user_overview {
     txt "Do delete";
     $self->dbExec('DELETE FROM users WHERE number = ?', $f->{del});
     $self->dbExec("SELECT users_renumber()");
-    return $self->resRedirect('/users', 'temp');
+    return $self->resRedirect('/config/users', 'temp');
   }
-  my $users = $self->dbAll(q|SELECT pos, number, username, password,
+  my $users = $self->dbAll(q|SELECT pos, number, username, password, logout_to_idle,
                                     console1_user_level, console2_user_level, console3_user_level, console4_user_level,
                                     console1_preset, console2_preset, console3_preset, console4_preset,
+                                    console1_preset_load, console2_preset_load, console3_preset_load, console4_preset_load,
                                     console1_sourcepool, console2_sourcepool, console3_sourcepool, console4_sourcepool,
                                     console1_presetpool, console2_presetpool, console3_presetpool, console4_presetpool
                              FROM users ORDER BY pos|);
 
-  my $g = $self->dbRow(q|SELECT username1, username2, username3, username4, password1, password2, password3, password4,
-                                (SELECT COUNT(*) FROM users WHERE username = username1 AND password = password1) AS username1found,
-                                (SELECT COUNT(*) FROM users WHERE username = username2 AND password = password2) AS username2found,
-                                (SELECT COUNT(*) FROM users WHERE username = username3 AND password = password3) AS username3found,
-                                (SELECT COUNT(*) FROM users WHERE username = username4 AND password = password4) AS username4found
-                         FROM global_config|);
+  my $c = $self->dbAll(q|SELECT c.number, c.username AS active_username, c.chipcard_username, c.chipcard_password, (SELECT COUNT(*) FROM users u WHERE u.username = c.chipcard_username AND u.password = c.chipcard_password) AS accountfound
+                         FROM console_config c
+                         ORDER BY c.number|);
 
   my $console_presets = $self->dbAll(q|SELECT pos, number, label FROM console_preset ORDER BY pos|);
   my $max_pos;
 
-  $self->htmlHeader(title => 'Users', page => 'users');
+  $self->htmlHeader(title => 'Users', area => 'config', page => 'users');
   div id => 'user_list', class => 'hidden';
    Select;
     $max_pos = 0;
@@ -169,7 +179,7 @@ sub user_overview {
   end;
   div id => 'level_list', class => 'hidden';
    Select;
-    option value => "$_", $user_levels[$_] for (0..6);
+    option value => "$_", $user_levels[$_] for (2..6);
    end;
   end;
   div id => 'preset_list', class => 'hidden';
@@ -188,16 +198,16 @@ sub user_overview {
    end;
   end;
   table;
-   Tr; th colspan => 20, 'Users'; end;
+   Tr; th colspan => 25, 'Users'; end;
    Tr;
-    th colspan => 3, '';
-    th colspan => 4, "Console $_" for (1..4);
+    th colspan => 4, '';
+    th colspan => 5, "Console $_" for (1..4);
     th '';
    end;
    Tr;
-    td colspan => 3, '';
+    td colspan => 4, '';
     for (1..4) {
-      td colspan => 4;
+      td colspan => 5;
         _col "console${_}_login";
         _col "console${_}_write";
       end;
@@ -205,34 +215,44 @@ sub user_overview {
     td '';
    end;
    Tr;
-    td colspan => 3, 'Chipcard account';
+    td colspan => 4, 'Active account';
     for (1..4) {
-      td colspan => 4;
-        _col "username$_", $g;
+      td colspan => 5;
+        _col 'active_username', @$c[$_-1];
       end;
     }
     td '';
    end;
    Tr;
-    th colspan => 3, '';
+    td colspan => 4, 'Chipcard account';
+    for (1..4) {
+      td colspan => 5;
+        _col 'chipcard_username', @$c[$_-1];
+      end;
+    }
+    td '';
+   end;
+   Tr;
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Username';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Password';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Logout to idle';
     for (1..4) {
       th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")';
        txt 'User'; br;
        txt 'level';
       end;
-      th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")';
-       txt 'Console'; br;
-       txt 'preset';
+      th colspan => 2;
+       txt 'Preset';
       end;
       th colspan => 2, 'Pool';
     }
     th '';
    end;
    Tr;
-    th 'Nr';
-    th 'Username';
-    th 'Password';
     for (1..4) {
+      th 'Nr';
+      th 'Load';
       th 'Source';
       th 'Preset';
     }
@@ -244,14 +264,16 @@ sub user_overview {
       th; _col 'pos', $u; end;
       td; _col 'username', $u; end;
       td; _col 'password', $u; end;
+      td; _col 'logout_to_idle', $u; end;
       for (1..4) {
         td; _col "console${_}_user_level", $u; end;
         td; _col "console${_}_preset", $u, $console_presets; end;
+        td; _col "console${_}_preset_load", $u; end;
         td; _col "console${_}_sourcepool", $u; end;
         td; _col "console${_}_presetpool", $u; end;
       }
       td;
-       a href => '/users?del='.$u->{number}, title => 'Delete';
+       a href => '/config/users?del='.$u->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
@@ -274,15 +296,16 @@ sub ajax {
     { name => 'username', required => 0, maxlength => 32, minlength => 1 },
     { name => 'password', required => 0, maxlength => 32, minlength => 1 },
     { name => 'pos', required => 0, template => 'int' },
+    { name => 'logout_to_idle', required => 0, enum => [ 0, 1 ] },
     map +(
       { name => "console${_}_user_level", required => 0, enum => [ 0..6 ] },
       { name => "console${_}_preset", required => 0, regex => [ qr/[NULL|\d]/, 0 ] },
+      { name => "console${_}_preset_load", required => 0, enum => [ 0, 1 ] },
       { name => "console${_}_sourcepool", required => 0, enum => [ 0..2 ] },
       { name => "console${_}_presetpool", required => 0, enum => [ 0..2 ] },
     ), 1..4
   );
   return 404 if $f->{_err};
-
 
   #if field returned is 'pos', the positions of other rows may change...
   if($f->{field} eq 'pos') {
@@ -299,9 +322,10 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_}))
-      for(qw|username password|,
+      for(qw|username password logout_to_idle|,
              (map("console${_}_user_level", 1..4)),
              (map("console${_}_preset", 1..4)),
+             (map("console${_}_preset_load", 1..4)),
              (map("console${_}_sourcepool", 1..4)),
              (map("console${_}_presetpool", 1..4)));
 

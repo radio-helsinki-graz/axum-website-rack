@@ -131,9 +131,11 @@ function conf_set_remove(page, item, field, value, obj, remove) {
     } else {
       obj.innerHTML = h.responseText;
     }
-    if((((page == 'source') || (page == 'users') || (page == 'preset') || (page == 'dest') || (page == 'consolepreset') || (page == 'busspreset') || (page == 'service')) && (field == 'pos')) || (page == 'service/account') ||
-        ((page == 'service') && (item == 'all')) ||
-        ((page.match('^setuserlevel') == 'setuserlevel') && (item == 'all'))
+    if((((page == 'config/source') || (page == 'config/users') || (page == 'config/preset') ||
+         (page == 'config/dest') || (page == 'config/consolepreset') || (page == 'config/busspreset') ||
+         (page == 'system')) && (field == 'pos')) || (page == 'system/account') ||
+         ((page == 'system') && (item == 'all')) ||
+         ((page.match('^config/setuserlevel') == 'config/setuserlevel') && (item == 'all'))
       )
     {
       location.reload(true);
@@ -361,7 +363,7 @@ function conf_func(addr, nr, f1, f2, f3, sensor, actuator, obj) {
     }
     while(obj.nodeName.toLowerCase() != 'td')
       obj = obj.parentNode;
-    ajax('/ajax/setfunc?addr='+addr+';nr='+nr
+    ajax('/ajax/config/setfunc?addr='+addr+';nr='+nr
         +';function='+f1+','+f2+','+f3+';sensor='+sensor+';actuator='+actuator, function(h) {
       obj.innerHTML = h.responseText;
       remove_input(input_obj);
@@ -369,7 +371,7 @@ function conf_func(addr, nr, f1, f2, f3, sensor, actuator, obj) {
   });
   if(!d) return false;
   d.innerHTML = 'loading function list...';
-  ajax('/ajax/func?sensor='+sensor+';actuator='+actuator, function(h) {
+  ajax('/ajax/config/func?sensor='+sensor+';actuator='+actuator, function(h) {
     d.innerHTML = h.responseText + '<input type="submit" value="Save" class="button" />';
     l = d.getElementsByTagName('div');
     for(i=0; i<l.length; i++)
@@ -405,7 +407,7 @@ function conf_id(addr, man_id, prod_id, firm_major, obj) {
     selected_id = l.options[l.selectedIndex].value;
     while(obj.nodeName.toLowerCase() != 'td')
       obj = obj.parentNode;
-    ajax('/ajax/change_conf?addr='+addr+';man='+man_id
+    ajax('/ajax/system/change_conf?addr='+addr+';man='+man_id
         +';prod='+prod_id+';id='+selected_id+';firm_major='+firm_major, function(h) {
       obj.innerHTML = h.responseText;
       remove_input(input_obj);
@@ -414,7 +416,7 @@ function conf_id(addr, man_id, prod_id, firm_major, obj) {
   });
   if(!d) return false;
   d.innerHTML = 'loading id list...';
-  ajax('/ajax/id_list?man='+man_id+';prod='+prod_id+';firm_major='+firm_major, function(h) {
+  ajax('/ajax/system/id_list?man='+man_id+';prod='+prod_id+';firm_major='+firm_major, function(h) {
     d.innerHTML = h.responseText + '<input type="submit" value="Save" class="button" />';
     l = d.getElementsByTagName('div');
     l = document.getElementById('id_main').getElementsByTagName('select')[0];
@@ -435,14 +437,14 @@ function conf_predefined(addr, obj) {
 
     while(obj.nodeName.toLowerCase() != 'td')
       obj = obj.parentNode;
-    ajax('/ajax/setpre?addr='+addr+';predefined='+encodeURIComponent(v1)+';offset='+v2, function(h) {
+    ajax('/ajax/config/setpre?addr='+addr+';predefined='+encodeURIComponent(v1)+';offset='+v2, function(h) {
       obj.innerHTML = h.responseText;
       remove_input(input_obj);
     });
   });
   if(!d) return false;
   d.innerHTML = 'loading configuration list...';
-  ajax('/ajax/loadpre?addr='+addr, function(h) {
+  ajax('/ajax/config/loadpre?addr='+addr, function(h) {
     d.innerHTML = h.responseText + ' Offset<input type="text" id="seq" maxlength="4" size="4" value="0"> <input type="submit" value="Import" class="button" />';
     l = d.getElementsByTagName('div');
     for(i=0; i<l.length; i++)
@@ -541,14 +543,14 @@ function conf_tz( obj) {
     n = document.getElementById('region_'+cont_nr+'/'+area_nr).getElementsByTagName('select')[0];
     while(obj.nodeName.toLowerCase() != 'td')
       obj = obj.parentNode;
-    ajax('/ajax/set_tz?tz='+n.options[n.selectedIndex].value, function(h) {
+    ajax('/ajax/config/set_tz?tz='+n.options[n.selectedIndex].value, function(h) {
       obj.innerHTML = h.responseText;
       remove_input(input_obj);
     });
   });
   if(!d) return false;
   d.innerHTML = 'loading timezone list...';
-  ajax('/ajax/tz_lst', function(h) {
+  ajax('/ajax/config/tz_lst', function(h) {
     d.innerHTML = h.responseText + '<input type="submit" value="Save" class="button" />';
     l = d.getElementsByTagName('div');
     for(i=0; i<l.length; i++)
@@ -617,14 +619,14 @@ function conf_outputlist(item, field, selected_output, obj) {
     selected_output = l.options[l.selectedIndex].value;
     while(obj.nodeName.toLowerCase() != 'td')
       obj = obj.parentNode;
-    ajax('/ajax/dest?item='+item+';field='+field+';'+field+'='+encodeURIComponent(selected_output), function(h) {
+    ajax('/ajax/config/dest?item='+item+';field='+field+';'+field+'='+encodeURIComponent(selected_output), function(h) {
       obj.innerHTML = h.responseText;
       remove_input(input_obj);
     });
   });
   if(!d) return false;
   d.innerHTML = 'loading slot/channel list...';
-  ajax('/ajax/outputlist?current='+selected_output, function(h) {
+  ajax('/ajax/config/outputlist?current='+selected_output, function(h) {
     d.innerHTML = h.responseText + '<input type="submit" value="Save" class="button" />';
     l = d.getElementsByTagName('div');
     l = document.getElementById('out_ch_main').getElementsByTagName('select')[0];
@@ -638,7 +640,7 @@ function conf_adddest(obj, list, type) {
   var d = create_input(obj, null, -70);
   if(!d) return false;
   d.innerHTML = 'loading slot/channel list...';
-  ajax('/ajax/outputlist?current=0_0', function(h) {
+  ajax('/ajax/config/outputlist?current=0_0', function(h) {
 
   var uctype = type.substr(0,1).toUpperCase() + type.substr(1,type.length);
   d.style.textAlign = 'right';

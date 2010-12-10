@@ -7,9 +7,9 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{module/assign} => \&assign,
-  qr{module/assign/generate} => \&generate,
-  qr{ajax/module/assign} => \&ajax,
+  qr{config/module/assign} => \&assign,
+  qr{config/module/assign/generate} => \&generate,
+  qr{ajax/config/module/assign} => \&ajax,
 );
 
 
@@ -21,11 +21,11 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'console') {
-    a href => '#', onclick => sprintf('return conf_select("module/assign", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/module/assign", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
       $v;
   }
   if($n =~ /assignment/) {
-   a href => '#', onclick => sprintf('return conf_set("module/assign", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+   a href => '#', onclick => sprintf('return conf_set("config/module/assign", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
      $v ? 'y' : (class => 'off', 'n');
   }
 }
@@ -43,7 +43,7 @@ sub assign {
     join(', ', @busses), $p*32-31, $p*32);
   my $dspcount = $self->dbRow('SELECT dsp_count() AS cnt')->{cnt};
 
-  $self->htmlHeader(page => 'moduleassign', title => 'Module assignment');
+  $self->htmlHeader(title => 'Module assignment', area => 'config', page => 'moduleassign');
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, 'Console '.($_) for (1..4);
@@ -73,7 +73,7 @@ sub assign {
       end;
     }
    end;
-   Tr class => 'empty'; th colspan => 33; a href=> '/module/assign/generate', 'generate'; txt ' assignment from console information (takes some seconds!)'; end; end;
+   Tr class => 'empty'; th colspan => 33; a href=> '/config/module/assign/generate', 'generate'; txt ' assignment from console information (takes some seconds!)'; end; end;
    for my $b (@$bus) {
      Tr $p > $dspcount ? (class => 'inactive') : ();
       th $b->{label};
@@ -119,7 +119,7 @@ sub generate {
     $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $_) if keys %set;
   }
 
-  $self->resRedirect('/module/assign', 'temp');
+  $self->resRedirect('/config/module/assign', 'temp');
 }
 
 1;

@@ -7,37 +7,42 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{globalconf} => \&conf,
-  qr{ajax/globalconf} => \&ajax,
-  qr{ipclock} => \&ipclock,
-  qr{setdatetime} => \&setdatetime,
-  qr{ajax/tz_lst} => \&timezone_lst,
-  qr{ajax/set_tz} => \&set_tz,
-  qr{ajax/ip} => \&set_ip,
-  qr{ajax/ntp} => \&set_ntp,
+  qr{config/globalconf} => \&conf,
+  qr{ajax/config/globalconf} => \&ajax,
+  qr{config/ipclock} => \&ipclock,
+  qr{config/setdatetime} => \&setdatetime,
+  qr{ajax/config/tz_lst} => \&timezone_lst,
+  qr{ajax/config/set_tz} => \&set_tz,
+  qr{ajax/config/ip} => \&set_ip,
+  qr{ajax/config/ntp} => \&set_ntp,
 );
 
 
 sub _col {
-  my($n, $v) = @_;
+  my($n, $d) = @_;
+  my $v = $d->{$n};
+
   if($n eq 'samplerate') {
-    a href => '#', onclick => sprintf('return conf_select("globalconf", 0, "samplerate", %d, this, "samplerates")', $v),
+    a href => '#', onclick => sprintf('return conf_select("config/globalconf", 0, "samplerate", %d, this, "samplerates")', $v),
       sprintf '%.1f kHz', $v/1000;
   }
   if($n eq 'ext_clock') {
-    a href => '#', onclick => sprintf('return conf_set("globalconf", 0, "ext_clock", %d, this)', $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "ext_clock", %d, this)', $v?0:1),
       $v ? 'On' : 'Off';
   }
+  if($n eq 'headroom') {
+    txt sprintf '%.1f dB', $v;
+  }
   if($n eq 'level_reserve') {
-    a href => '#', onclick => sprintf('return conf_select("globalconf", 0, "level_reserve", %d, this, "reslevels")', $v),
+    a href => '#', onclick => sprintf('return conf_select("config/globalconf", 0, "level_reserve", %d, this, "reslevels")', $v),
       sprintf '%d dB', 10-$v;
   }
   if($n eq 'auto_momentary') {
-    a href => '#', onclick => sprintf('return conf_set("globalconf", 0, "auto_momentary", %d, this)', $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "auto_momentary", %d, this)', $v?0:1),
       $v ? 'Yes' : 'No';
   }
   if ($n =~ /net_(ip|mask|gw|dns)/) {
-    a href => '#', onclick => sprintf('return conf_text("ip", 0, "%s", "%s", this)', $n, $v), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/ip", 0, "%s", "%s", this)', $n, $v), $v;
   }
   if ($n eq 'ntp_server') {
     $v = "0.0.0.0" if not $v;
@@ -45,14 +50,22 @@ sub _col {
     txt "1.pool.ntp.org\n";
     txt "2.pool.ntp.org\n";
     txt "NMEA GPS on USB (/dev/ttyUSB0)\n";
-    a href => '#', onclick => sprintf('return conf_text("ntp", 0, "%s", "%s", this)', $n, $v), ($v eq "0.0.0.0" ? ("optional ntp server") : ($v));
+    a href => '#', onclick => sprintf('return conf_text("config/ntp", 0, "%s", "%s", this)', $n, $v), ($v eq "0.0.0.0" ? ("optional ntp server") : ($v));
   }
   if ($n eq 'timezone') {
     a href => '#', onclick => sprintf('return conf_tz(this)'), $v ? ($v) : ('Select timezone');
   }
   if ($n eq 'startup_state') {
-    a href => '#', onclick => sprintf('return conf_set("globalconf", 0, "startup_state", %d, this)', $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "startup_state", %d, this)', $v?0:1),
       $v ? 'Backup of last situation' : 'Programmed defaults';
+  }
+
+  # next all global columns
+  if (($n eq 'name') or
+      ($n eq 'location') or
+      ($n eq 'contact')) {
+    $v = '' if not defined $v;
+    a href => '#', onclick => sprintf('return conf_text("config/globalconf", %d, "%s", "%s", this)', $d->{number}, $n, $v), ($v ne '') ? ($v) : (class => 'off', 'None');
   }
 }
 
@@ -62,8 +75,9 @@ sub conf {
 
   my $conf = $self->dbRow('SELECT samplerate, ext_clock, headroom, level_reserve, auto_momentary, startup_state
                            FROM global_config');
+  my $consoles = $self->dbAll('SELECT number, name, location, contact FROM console_config ORDER BY number');
 
-  $self->htmlHeader(page => 'globalconf', title => 'Global configuration');
+  $self->htmlHeader(title => 'Global configuration', area => 'config', page => 'globalconf');
   div id => 'samplerates', class => 'hidden'; Select;
    option value => $_, sprintf '%.1f kHz', $_/1000 for (32000, 44100, 48000);
   end; end;
@@ -72,12 +86,31 @@ sub conf {
   end; end;
   table;
    Tr; th colspan => 2, 'Global configuration'; end;
-   Tr; th 'Samplerate';    td; _col 'samplerate', $conf->{samplerate}; end; end;
-   Tr; th 'Extern clock';  td; _col 'ext_clock', $conf->{ext_clock}; end; end;
-   Tr; th 'Headroom';      td sprintf '%.1f dB', $conf->{headroom}; end;
-   Tr; th 'Fader top level'; td; _col 'level_reserve', $conf->{level_reserve}; end; end;
-   Tr; th 'Auto momentary'; td; _col 'auto_momentary', $conf->{auto_momentary}; end; end;
-   Tr; th 'Startup state'; td; _col 'startup_state', $conf->{startup_state}; end; end;
+   Tr; th 'Samplerate';    td; _col 'samplerate', $conf; end; end;
+   Tr; th 'Extern clock';  td; _col 'ext_clock', $conf; end; end;
+   Tr; th 'Headroom';      td; _col 'headroom', $conf; end; end;
+   Tr; th 'Fader top level'; td; _col 'level_reserve', $conf; end; end;
+   Tr; th 'Auto momentary'; td; _col 'auto_momentary', $conf; end; end;
+   Tr; th 'Startup state'; td; _col 'startup_state', $conf; end; end;
+  end;
+  br;
+  br;
+  table;
+   Tr; th colspan => 4, 'Console information'; end;
+   Tr;
+    th '';
+    th 'Name';
+    th 'Location';
+    th 'Contact';
+   end;
+   for my $c (@$consoles) {
+     Tr;
+      th "Console $c->{number}";
+      td; _col 'name', $c; end;
+      td; _col 'location', $c; end;
+      td; _col 'contact', $c; end;
+     end;
+   }
   end;
   $self->htmlFooter;
 }
@@ -88,17 +121,27 @@ sub ajax {
 
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
+    { name => 'item', template => 'int' },
     { name => 'samplerate', required => 0, enum => [32000, 44100, 48000] },
     { name => 'ext_clock', required => 0, enum => [0,1] },
     { name => 'level_reserve', required => 0, enum => [0,10] },
     { name => 'auto_momentary', required => 0, enum => [0,1] },
     { name => 'startup_state', required => 0, enum => [0,1] },
+    { name => 'name', required => 0, template => 'asciiprint' },
+    { name => 'location', required => 0, template => 'asciiprint' },
+    { name => 'contact', required => 0, template => 'asciiprint' },
   );
   return 404 if $f->{_err};
 
-  my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve startup_state auto_momentary|;
-  $self->dbExec('UPDATE global_config !H', \%set) if keys %set;
-  _col $f->{field}, $f->{$f->{field}};
+  if ($f->{item} == 0) {
+    my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve startup_state auto_momentary|;
+    $self->dbExec('UPDATE global_config !H', \%set) if keys %set;
+  } else {
+    $f->{$f->{field}} = '' if not defined $f->{$f->{field}};
+    my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|name location contact|;
+    $self->dbExec('UPDATE console_config !H WHERE number = ?', \%set, $f->{item}) if keys %set;
+  }
+  _col $f->{field}, { $f->{field} => $f->{$f->{field}}};
 }
 
 sub ipclock
@@ -151,7 +194,7 @@ sub ipclock
       $sync_st = $2;
     }
   }
-  $self->htmlHeader(page => 'ipclock', section => 'timezonde', title => "IP/Clock configuration");
+  $self->htmlHeader(title => "IP/Clock configuration", area => 'config', page => 'ipclock');
 
   table;
   Tr; th colspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "IP\n"; i "(effective after reboot)"; end; end;
@@ -170,11 +213,10 @@ sub ipclock
    td colspan => 2;
     input type=>'Text', name=>'datetime', size=>'25', maxlength=>'25', id=>'datetime', class => 'hidden';
     a href => "javascript: NewCssCal('datetime','yyyymmdd','dropdown',true,24,false)";
-     img width=>'16', height=>'16', margin=>'0', alt=>'Pick a date', src=>'images/cal.gif';
+     img width=>'16', height=>'16', margin=>'0', alt=>'Pick a date', src=>'/images/cal.gif';
     end;
    end;
   end;
-
 
   $self->htmlFooter;
 }
@@ -419,7 +461,7 @@ sub setdatetime {
 
   $self->dbExec("UPDATE global_config SET date_time = ?", "$f->{date} $f->{time}");
 
-  $self->resRedirect('/ipclock');
+  $self->resRedirect('/config/ipclock');
 }
 
 

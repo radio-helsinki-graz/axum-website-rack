@@ -7,8 +7,8 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{externsrc} => \&extsrc,
-  qr{ajax/externsrc} => \&ajax,
+  qr{config/externsrc} => \&extsrc,
+  qr{ajax/config/externsrc} => \&ajax,
 );
 
 
@@ -24,11 +24,11 @@ sub _col {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("externsrc", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/externsrc", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
       !($v > 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
   }
   if ($n =~ /^safe/) {
-    a href => '#', onclick => sprintf('return conf_set("externsrc", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/externsrc", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
        ($v == 1)  ? (class => 'off', 'yes') : ('no');
   }
 }
@@ -44,7 +44,7 @@ sub extsrc {
   my $es = $self->dbAll('SELECT number, !s FROM extern_src_config ORDER BY number',
     join ', ', map("ext$_", 1..8), map("safe$_", 1..8));
 
-  $self->htmlHeader(title => 'Extern source configuration', page => 'externsrc');
+  $self->htmlHeader(title => 'Extern source configuration', area => 'config', page => 'externsrc');
   $self->htmlSourceList($pos_lst, 'matrix_sources');
 
   table;

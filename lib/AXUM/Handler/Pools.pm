@@ -7,10 +7,10 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{sourcepools}        => \&sourcepools,
-  qr{ajax/sourcepools}   => \&ajax_sourcepools,
-  qr{presetpools}        => \&presetpools,
-  qr{ajax/presetpools}   => \&ajax_presetpools,
+  qr{config/sourcepools}        => \&sourcepools,
+  qr{ajax/config/sourcepools}   => \&ajax_sourcepools,
+  qr{config/presetpools}        => \&presetpools,
+  qr{ajax/config/presetpools}   => \&ajax_presetpools,
 );
 
 sub _col {
@@ -27,12 +27,12 @@ sub _col {
     $v = $d->{$n};
     if ($1 eq 'source')
     {
-      a href => '#', onclick => sprintf('return conf_set("sourcepools", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+      a href => '#', onclick => sprintf('return conf_set("config/sourcepools", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
        $v ? 'y' : (class => 'off', 'n');
     }
     if ($1 eq 'preset')
     {
-      a href => '#', onclick => sprintf('return conf_set("presetpools", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+      a href => '#', onclick => sprintf('return conf_set("config/presetpools", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
        $v ? 'y' : (class => 'off', 'n');
     }
   }
@@ -44,7 +44,7 @@ sub sourcepools {
   my $pool = $self->dbAll(q|SELECT pos, number, type, label, pool1, pool2, pool3, pool4, pool5, pool6, pool7, pool8, active
                             FROM matrix_sources ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Source pools', page => 'sourcepools');
+  $self->htmlHeader(title => 'Source pools', area => 'config', page => 'sourcepools');
 
   table;
    Tr; th colspan => 11, 'Source pool'; end;
@@ -105,7 +105,7 @@ sub presetpools {
   my $pool = $self->dbAll(q|SELECT pos, number, label, pool1, pool2, pool3, pool4, pool5, pool6, pool7, pool8
                             FROM processing_presets ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Preset pools', page => 'presetpools');
+  $self->htmlHeader(title => 'Preset pools', area => 'config', page => 'presetpools');
 
   table;
    Tr; th colspan => 11, 'Preset pool'; end;

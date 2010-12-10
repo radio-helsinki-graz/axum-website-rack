@@ -6,9 +6,9 @@ use warnings;
 use YAWF ':html';
 
 YAWF::register(
-  qr{busspreset}                  => \&busspreset_overview,
-  qr{busspreset/([1-9][0-9]*)}    => \&busspreset,
-  qr{ajax/busspreset}             => \&ajax,
+  qr{config/busspreset}                  => \&busspreset_overview,
+  qr{config/busspreset/([1-9][0-9]*)}    => \&busspreset,
+  qr{ajax/config/busspreset}             => \&ajax,
 );
 
 my @buss_names = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
@@ -21,12 +21,12 @@ sub _col_overview {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("busspreset", %d, "%s", "%s", this, "buss_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/busspreset", %d, "%s", "%s", this, "buss_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("busspreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/busspreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
 }
 
@@ -46,7 +46,7 @@ sub _col {
   );
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("busspreset", %d, "%s", "%s", this, "buss_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/busspreset", %d, "%s", "%s", this, "buss_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($booleans{$n}) {
     if ($n =~ /^crm/) {
@@ -55,20 +55,20 @@ sub _col {
 
       $s =~ s/crm/crm_$d->{monitor_buss}/;
       if ($d->{buss}<=15) {
-        a href => '#', onclick => sprintf('return conf_set("busspreset", %d, "%s", "%s", this)', $d->{number}, $buss_names[$d->{buss}].'_'.$s, $v?0:1),
+        a href => '#', onclick => sprintf('return conf_set("config/busspreset", %d, "%s", "%s", this)', $d->{number}, $buss_names[$d->{buss}].'_'.$s, $v?0:1),
          ($v?1:0) == $booleans{$n}[0] ? (class => 'off') : (), $booleans{$n}[$v?1:2];
       } else {
-        a href => '#', onclick => sprintf('return conf_set("busspreset", %d, "%s", "%s", this)', $d->{number}, $ext_names[($d->{buss}-16)].'_'.$s, $v?0:1),
+        a href => '#', onclick => sprintf('return conf_set("config/busspreset", %d, "%s", "%s", this)', $d->{number}, $ext_names[($d->{buss}-16)].'_'.$s, $v?0:1),
          ($v?1:0) == $booleans{$n}[0] ? (class => 'off') : (), $booleans{$n}[$v?1:2];
       }
     } else {
-      a href => '#', onclick => sprintf('return conf_set("busspreset", %d, "%s", "%s", this)', $d->{number}, $buss_names[$d->{buss}-1].'_'.$n, $v?0:1),
+      a href => '#', onclick => sprintf('return conf_set("config/busspreset", %d, "%s", "%s", this)', $d->{number}, $buss_names[$d->{buss}-1].'_'.$n, $v?0:1),
        ($v?1:0) == $booleans{$n}[0] ? (class => 'off') : (), $booleans{$n}[$v?1:2];
     }
     return;
   }
   if($n eq 'level') {
-    a href => '#', onclick => sprintf('return conf_level("busspreset", %d, "%s", %f, this)', $d->{number}, $buss_names[$d->{buss}-1].'_'.$n, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/busspreset", %d, "%s", %f, this)', $d->{number}, $buss_names[$d->{buss}-1].'_'.$n, $v),
       $v == 0 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n eq 'label') {
@@ -100,7 +100,7 @@ sub _create_buss_preset {
   $self->dbExec("SELECT buss_preset_renumber()");
   $self->dbExec(q|INSERT INTO buss_preset_rows (number, buss) SELECT ?, generate_series(1,16)|, $num);
   $self->dbExec(q|INSERT INTO monitor_buss_preset_rows (number, monitor_buss) SELECT ?, generate_series(1,16)|, $num);
-  $self->resRedirect('/busspreset', 'post');
+  $self->resRedirect('/config/busspreset', 'post');
 }
 
 sub busspreset_overview {
@@ -114,12 +114,12 @@ sub busspreset_overview {
   if(!$f->{_err}) {
     $self->dbExec('DELETE FROM buss_preset WHERE number = ?', $f->{del});
     $self->dbExec("SELECT buss_preset_renumber()");
-    return $self->resRedirect('/busspreset', 'temp');
+    return $self->resRedirect('/config/busspreset', 'temp');
   }
   my $presets = $self->dbAll(q|SELECT pos, number, label
     FROM buss_preset ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Buss presets', page => 'busspreset');
+  $self->htmlHeader(title => 'Buss presets', area => 'config', page => 'busspreset');
   div id => 'buss_preset_list', class => 'hidden';
    Select;
     my $max_pos;
@@ -146,10 +146,10 @@ sub busspreset_overview {
       th; _col_overview 'pos', $p; end;
       td; _col_overview 'label', $p; end;
       td;
-       a href => '/busspreset/'.$p->{number}, class => 'off', 'Configure';
+       a href => '/config/busspreset/'.$p->{number}, class => 'off', 'Configure';
       end;
       td;
-       a href => '/busspreset?del='.$p->{number}, title => 'Delete';
+       a href => '/config/busspreset?del='.$p->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
@@ -170,7 +170,7 @@ sub busspreset {
   my $busses = $self->dbAll(q|
     SELECT bp.number, bp.buss, bp.use_preset, bp.level, bp.on_off,
            bc.label, bc.console
-      FROM buss_preset_rows bp 
+      FROM buss_preset_rows bp
       JOIN buss_config bc ON bc.number = bp.buss
       WHERE bp.number = ? ORDER BY number, buss ASC|, $nr);
 
@@ -179,7 +179,7 @@ sub busspreset {
                                  JOIN monitor_buss_config mbc ON mbc.number = mbp.monitor_buss
                                  WHERE mbp.number = ? ORDER BY mbp.monitor_buss|, $nr);
 
-  $self->htmlHeader(title => 'Mix buss preset', page => 'busspreset', section => $nr);
+  $self->htmlHeader(title => 'Mix buss preset', area => 'config', page => 'busspreset', section => $nr);
   table;
    Tr;
     td style => 'background: none', valign => 'top';
@@ -294,7 +294,7 @@ sub ajax {
       { name => "${_}_crm_14_on_off", required => 0, enum => [0,1] },
       { name => "${_}_crm_15_on_off", required => 0, enum => [0,1] },
       { name => "${_}_crm_16_on_off", required => 0, enum => [0,1] },
-    ), @buss_names), 
+    ), @buss_names),
     map( +(
       { name => "${_}_crm_1_use_preset", required => 0, enum => [0,1] },
       { name => "${_}_crm_2_use_preset", required => 0, enum => [0,1] },
@@ -328,7 +328,7 @@ sub ajax {
       { name => "${_}_crm_14_on_off", required => 0, enum => [0,1] },
       { name => "${_}_crm_15_on_off", required => 0, enum => [0,1] },
       { name => "${_}_crm_16_on_off", required => 0, enum => [0,1] },
-    ), @ext_names), 
+    ), @ext_names),
   );
   return 404 if $f->{_err};
 
@@ -349,7 +349,7 @@ sub ajax {
   my $crm = 0;
   my $fieldname;
   for(qw|use_preset on_off level|, map("crm_${_}_use_preset", (1..16)), map("crm_${_}_on_off", (1..16))) {
-    for my $b (@buss_names) {  
+    for my $b (@buss_names) {
       my $field = $b.'_'.$_;
       if (defined $f->{$field}) {
         if ($b =~ /buss_(\d+)_(\d+)_*/) {
@@ -364,7 +364,7 @@ sub ajax {
         }
       }
     }
-    for my $e (@ext_names) {  
+    for my $e (@ext_names) {
       my $field = $e.'_'.$_;
       if (defined $f->{$field}) {
         if ($e =~ /ext_(\d+)_*/) {
@@ -383,7 +383,7 @@ sub ajax {
 
   if ($crm>0) {
 
-    $set{"$fieldname\[$buss\] = ?"} = $f->{$f->{field}} ? ('t') : ('f'); 
+    $set{"$fieldname\[$buss\] = ?"} = $f->{$f->{field}} ? ('t') : ('f');
     $self->dbExec('UPDATE monitor_buss_preset_rows !H WHERE number = ? AND monitor_buss = ?', \%set, $f->{item}, $crm) if keys %set;
     $fieldname = 'crm_'.$fieldname;
 

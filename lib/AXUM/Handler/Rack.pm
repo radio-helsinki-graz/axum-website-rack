@@ -7,17 +7,17 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{rack} => \&list,
-  qr{surface} => \&listui,
-  qr{(surface|rack)/([0-9a-fA-F]{8})} => \&conf,
-  qr{ajax/(surface|rack)} => \&ajax,
-  qr{ajax/loadpre} => \&loadpre,
-  qr{ajax/setpre} => \&setpre,
-  qr{ajax/func} => \&funclist,
-  qr{ajax/setfunc} => \&setfunc,
-  qr{ajax/setdefault} => \&setdefault,
-  qr{ajax/setlabel/([0-9a-fA-F]{8})} => \&setlabel,
-  qr{ajax/setuserlevel/([0-9a-fA-F]{8})} => \&setuserlevel,
+  qr{config/rack} => \&list,
+  qr{config/surface} => \&listui,
+  qr{config/(surface|rack)/([0-9a-fA-F]{8})} => \&conf,
+  qr{ajax/config/(surface|rack)} => \&ajax,
+  qr{ajax/config/loadpre} => \&loadpre,
+  qr{ajax/config/setpre} => \&setpre,
+  qr{ajax/config/func} => \&funclist,
+  qr{ajax/config/setfunc} => \&setfunc,
+  qr{ajax/config/setdefault} => \&setdefault,
+  qr{ajax/config/setlabel/([0-9a-fA-F]{8})} => \&setlabel,
+  qr{ajax/config/setuserlevel/([0-9a-fA-F]{8})} => \&setuserlevel,
 );
 
 
@@ -38,7 +38,7 @@ sub listui {
     FROM slot_config s
     RIGHT JOIN addresses a ON a.addr = s.addr WHERE s.addr IS NULL AND ((a.parent).man != 1 OR (a.parent).prod != 12) AND NOT ((a.id).man=(a.parent).man AND (a.id).prod=(a.parent).prod AND (a.id).id=(a.parent).id)
     ORDER BY NULLIF((a.parent).man, 0), (a.parent).prod, (a.parent).id, NOT a.active, (a.id).man, (a.id).prod, (a.id).id');
-  $self->htmlHeader(title => 'Surface configuration', page => 'surface');
+  $self->htmlHeader(title => 'Surface configuration', area => 'config', page => 'surface');
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, $user_level_from_names[$_] for (0..4);
@@ -72,7 +72,7 @@ sub listui {
       td !$c->{config_cnt} ? (class => 'inactive') : (), $c->{config_cnt};
       td;
        if($c->{objects}) {
-         a href => sprintf('/surface/%08x', $c->{addr}); lit 'configure &raquo;'; end;
+         a href => sprintf('/config/surface/%08x', $c->{addr}); lit 'configure &raquo;'; end;
        } else {
          a href => '#', class => 'off', 'no objects';
        }
@@ -86,13 +86,13 @@ sub listui {
       end;
       td;
        if($c->{objects} and $c->{config_cnt}) {
-         a href => '#', onclick => sprintf('return conf_text("surface", "%08X", "export", "Config name", this, "Name ", "Export")', $c->{addr}), 'export';
+         a href => '#', onclick => sprintf('return conf_text("config/surface", "%08X", "export", "Config name", this, "Name ", "Export")', $c->{addr}), 'export';
        } else {
          a href => '#', class => 'off', 'no export data';
        }
       end;
       td;
-        a href => '#', onclick => sprintf('return conf_select("surface", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
+        a href => '#', onclick => sprintf('return conf_select("config/surface", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
       end;
      end;
    }
@@ -112,7 +112,7 @@ sub list {
     (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt
     FROM slot_config s JOIN addresses a ON a.addr = s.addr ORDER BY s.slot_nr');
 
-  $self->htmlHeader(title => 'Rack configuration', page => 'rack');
+  $self->htmlHeader(title => 'Rack configuration', area => 'config', page => 'rack');
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, $user_level_from_names[$_] for (0..4);
@@ -142,7 +142,7 @@ sub list {
       td !$c->{config_cnt} ? (class => 'inactive') : (), $c->{config_cnt};
       td;
        if($c->{objects}) {
-         a href => sprintf('/rack/%08x', $c->{addr}); lit 'configure &raquo;'; end;
+         a href => sprintf('/config/rack/%08x', $c->{addr}); lit 'configure &raquo;'; end;
        } else {
          a href => '#', class => 'off', 'no objects';
        }
@@ -156,13 +156,14 @@ sub list {
       end;
       td;
        if($c->{objects} and $c->{config_cnt}) {
-         a href => '#', onclick => sprintf('return conf_text("rack", "%08X", "export", "Config name", this)', $c->{addr}), 'export';
+         a href => '#', onclick => sprintf('return conf_text("config/rack", "%08X", "export", "Config name", this)', $c->{addr}), 'export';
        } else {
          a href => '#', class => 'off', 'no export data';
        }
       end;
       td;
-        a href => '#', onclick => sprintf('return conf_select("rack", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
+        $c->{user_level_from_console} = 0 if not defined $c->{user_level_from_console};
+        a href => '#', onclick => sprintf('return conf_select("config/rack", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
       end;
      end;
    }
@@ -176,16 +177,16 @@ sub _col {
 
   if ($n eq 'label') {
     $v = 0 if (!defined $v);
-    a href => '#', onclick => sprintf('return conf_text("setlabel/%08X", "%d", "%s", "%s", this, "Label", "Save")', oct "0x$addr", $d->{number}, $n, $v), $v ? ($v) : (class => 'off' , 'none');
+    a href => '#', onclick => sprintf('return conf_text("config/setlabel/%08X", "%d", "%s", "%s", this, "Label", "Save")', oct "0x$addr", $d->{number}, $n, $v), $v ? ($v) : (class => 'off' , 'none');
   }
   if ($n =~ /^user_level[0-5]/)
   {
     if ($d->{sensor_type}) {
       if (defined $v) {
-        a href => '#', onclick => sprintf('return conf_set("setuserlevel/%08X", "%d", "%s", "%s", this)', oct "0x$addr", $d->{number}, $n, $v+1), ($v ? 'y' : 'n');
+        a href => '#', onclick => sprintf('return conf_set("config/setuserlevel/%08X", "%d", "%s", "%s", this)', oct "0x$addr", $d->{number}, $n, $v+1), ($v ? 'y' : 'n');
       } else {
         if (defined $d->{"func_$n"}) {
-          a href => '#', onclick => sprintf('return conf_set("setuserlevel/%08X", "%d", "%s", "%s", this)', oct "0x$addr", $d->{number}, $n, 0), class => 'off', $d->{"func_$n"} ? 'y' : 'n';
+          a href => '#', onclick => sprintf('return conf_set("config/setuserlevel/%08X", "%d", "%s", "%s", this)', oct "0x$addr", $d->{number}, $n, 0), class => 'off', $d->{"func_$n"} ? 'y' : 'n';
         }
       }
     }
@@ -194,11 +195,11 @@ sub _col {
   {
     my @user_level_names  = ('Idle', 'Unkown', 'Operator 1', 'Operator 2', 'Supervisor 1', 'Supervisor 2');
 
-    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 1), 'y';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("config/setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 1), 'y';
     txt ' / ';
-    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 0), 'n';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("config/setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 0), 'n';
     txt ' / ';
-    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 2), class => 'off', 'd';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("config/setuserlevel/%08X", "all", "user_level%d", "%s", this)}', $user_level_names[$1], oct "0x$addr", $1, 2), class => 'off', 'd';
   }
 }
 
@@ -235,7 +236,7 @@ sub _default {
   my $v = 0;                   # This regex doesn't correctly handle comma's or quotes in strings
   $v = $1 if defined $row->{actuator_def} && $row->{actuator_def} =~ /\(,*([^,]+),*\)/;
   $v = $1 if defined $row->{data} && $row->{data} =~ /\(,*([^,]+),*\)/;
-  a href => '#', onclick => sprintf('return conf_text("setdefault", %d, "%s", %f, this)', $row->{number}, $addr, $1),
+  a href => '#', onclick => sprintf('return conf_text("config/setdefault", %d, "%s", %f, this)', $row->{number}, $addr, $1),
     !$row->{data} ? (class => 'off') : (), $1;
 }
 
@@ -268,7 +269,7 @@ sub conf {
     ? 'SELECT a.name, s.slot_nr FROM addresses a JOIN slot_config s ON s.addr = a.addr WHERE a.addr = ?'
     : 'SELECT a.name FROM addresses a WHERE a.addr = ?', oct "0x$addr");
 
-  $self->htmlHeader(page => $type, section => $addr, title => "Object configuration for $addr");
+  $self->htmlHeader(title => "Object configuration for $addr", area => 'config', page => $type, section => $addr);
 
 
   table;
@@ -601,7 +602,7 @@ sub ajax {
   } elsif ($f->{field} eq 'user_level_from_console') {
     $self->dbExec("UPDATE addresses SET user_level_from_console = ? WHERE addr = ?", $f->{$f->{field}}, oct "0x$f->{item}");
     #used rack in the link, because surface/rack make no differenct for the user_level_from_console ajax communication
-    a href => '#', onclick => sprintf('return conf_select("surface", "%08X", "%s", "%s", this, "console_list")', oct "0x$f->{item}", 'user_level_from_console', $f->{user_level_from_console}), $user_level_from_names[$f->{user_level_from_console}];
+    a href => '#', onclick => sprintf('return conf_select("/config/surface", "%08X", "%s", "%s", this, "console_list")', oct "0x$f->{item}", 'user_level_from_console', $f->{user_level_from_console}), $user_level_from_names[$f->{user_level_from_console}];
   }
 }
 

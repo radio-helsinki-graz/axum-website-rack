@@ -7,8 +7,8 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{buss}      => \&buss,
-  qr{ajax/buss} => \&ajax,
+  qr{config/buss}      => \&buss,
+  qr{ajax/config/buss} => \&ajax,
 );
 
 my @buss_names = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
@@ -31,7 +31,7 @@ sub _col {
   );
 
   if($booleans{$n}) {
-    a href => '#', onclick => sprintf('return conf_set("buss", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/buss", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       ($v?1:0) == $booleans{$n}[0] ? (class => 'off') : (), $booleans{$n}[$v?1:2];
     return;
   }
@@ -39,21 +39,21 @@ sub _col {
     my $pre = ($v != 0);
     my $post = (($d->{count}-$v) != 0);
 
-    a href => '#', onclick => sprintf('return conf_set("buss", %d, "%s", "%s", this)', $d->{number}, $n, $pre?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/buss", %d, "%s", "%s", this)', $d->{number}, $n, $pre?0:1),
      ($pre ? ($post ? ('Pre/Post') : ('Pre')) : (class => 'off', 'Post'));
     return;
   }
   if($n eq 'level') {
-    a href => '#', onclick => sprintf('return conf_level("buss", %d, "level", %f, this)', $d->{number}, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/buss", %d, "level", %f, this)', $d->{number}, $v),
       $v == 0 ? (class => 'off') : (), $v < -120 ? (sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("buss", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/buss", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if($n eq 'console') {
-    a href => '#', onclick => sprintf('return conf_select("buss", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/buss", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
       $v;
   }
 }
@@ -92,7 +92,7 @@ sub buss {
         WHERE (SELECT COUNT(*) FROM module_config m WHERE m.console = b.console) = 0
         ORDER BY b.number ASC)|);
 
-  $self->htmlHeader(title => 'Buss configuration', page => 'buss');
+  $self->htmlHeader(title => 'Buss configuration', area => 'config', page => 'buss');
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, 'Console '.($_) for (1..4);

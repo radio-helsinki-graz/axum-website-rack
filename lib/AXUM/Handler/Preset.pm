@@ -7,11 +7,11 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{preset}        => \&preset_overview,
-  qr{preset/([1-9][0-9]*)} => \&preset,
-  qr{ajax/preset}       	  => \&ajax,
-  qr{ajax/preset/([1-9][0-9]*)/eq} => \&eqajax,
-  qr{ajax/preset/([1-9][0-9]*)/dyn} => \&dynajax,
+  qr{config/preset}        => \&preset_overview,
+  qr{config/preset/([1-9][0-9]*)} => \&preset,
+  qr{ajax/config/preset}       	  => \&ajax,
+  qr{ajax/config/preset/([1-9][0-9]*)/eq} => \&eqajax,
+  qr{ajax/config/preset/([1-9][0-9]*)/dyn} => \&dynajax,
 );
 
 my @phase_types = ('Normal', 'Left', 'Right', 'Both');
@@ -22,39 +22,39 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", "%s", this, "preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/preset", %d, "%s", "%s", this, "preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("preset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/preset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if($n eq 'gain') {
-    a href => '#', onclick => sprintf('return conf_level("preset", %d, "%s", %f, this)', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/preset", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n =~ /.+_on_off/) {
-    a href => '#', onclick => sprintf('return conf_set("preset", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/preset", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
       $v ? 'on' : (class => 'off', 'off');
   }
   if($n eq 'lc_frequency') {
-    a href => '#', onclick => sprintf('return conf_freq("preset", %d, "lc_frequency", %d, this)', $d->{number}, $v),
+    a href => '#', onclick => sprintf('return conf_freq("config/preset", %d, "lc_frequency", %d, this)', $d->{number}, $v),
       sprintf '%d Hz', $v;
   }
   if($n eq 'mod_lvl') {
-    a href => '#', onclick => sprintf('return conf_level("preset", %d, "%s" , %f, this)', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/preset", %d, "%s" , %f, this)', $d->{number}, $n, $v),
       $v < -120 ? (class => 'off', sprintf 'Off') : (sprintf '%.1f dB', $v);
   }
   if($n =~ /use_.+/) {
-    a href => '#', onclick => sprintf('return conf_set("preset", %d, "%s", %d, this)', $d->{number}, $n, $v?0:1),
+    a href => '#', onclick => sprintf('return conf_set("config/preset", %d, "%s", %d, this)', $d->{number}, $n, $v?0:1),
      $v ? 'yes' : (class => 'off', 'no');
   }
   if($n eq 'phase') {
-    a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "phase_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/preset", %d, "%s", %d, this, "phase_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $phase_types[$v];
   }
   if($n eq 'mono') {
-    a href => '#', onclick => sprintf('return conf_select("preset", %d, "%s", %d, this, "mono_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/preset", %d, "%s", %d, this, "mono_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $mono_types[$v];
   }
   if ($n =~ /^copy_preset/) {
@@ -211,7 +211,7 @@ sub _create_preset {
   }
 
   $self->dbExec("SELECT src_preset_renumber()");
-  $self->resRedirect('/preset', 'post');
+  $self->resRedirect('/config/preset', 'post');
 }
 
 sub preset_overview {
@@ -225,12 +225,12 @@ sub preset_overview {
   if(!$f->{_err}) {
     $self->dbExec('DELETE FROM src_preset WHERE number = ?', $f->{del});
     $self->dbExec("SELECT src_preset_renumber()");
-    return $self->resRedirect('/preset', 'temp');
+    return $self->resRedirect('/config/preset', 'temp');
   }
   my $presets = $self->dbAll(q|SELECT pos, number, label
     FROM src_preset ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Processing presets', page => 'preset');
+  $self->htmlHeader(title => 'Processing presets', area => 'config', page => 'preset');
   div id => 'preset_list', class => 'hidden';
    Select;
     my $max_pos;
@@ -257,10 +257,10 @@ sub preset_overview {
       th; _col 'pos', $p; end;
       td; _col 'label', $p; end;
       td;
-       a href => '/preset/'.$p->{number}, class => 'off', 'Configure';
+       a href => '/config/preset/'.$p->{number}, class => 'off', 'Configure';
       end;
       td;
-       a href => '/preset?del='.$p->{number}, title => 'Delete';
+       a href => '/config/preset?del='.$p->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
@@ -336,7 +336,7 @@ sub preset {
          WHERE number = ?|, $nr);
   return 404 if !$preset->{number};
 
-  $self->htmlHeader(page => 'preset', section => $nr, title => "Preset $preset->{label}");
+  $self->htmlHeader(title => "Preset $preset->{label}", area => 'config', page => 'preset', section => $nr);
   div id => 'eq_table_container', class => 'hidden';
    _eqtable($preset);
   end;
@@ -398,14 +398,14 @@ sub preset {
     td; _col 'use_eq_preset', $preset; end;
     td; _col 'eq_on_off', $preset; end;
     td;
-     a href => "#", onclick => "return conf_eq(\"preset\", this, $nr)"; lit 'EQ settings &raquo;'; end;
+     a href => "#", onclick => "return conf_eq(\"config/preset\", this, $nr)"; lit 'EQ settings &raquo;'; end;
     end;
    end;
    Tr; th 'Dynamics';
     td; _col 'use_dyn_preset', $preset; end;
     td; _col 'dyn_on_off', $preset; end;
     td;
-     a href => "#", onclick => "return conf_dyn(\"preset\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
+     a href => "#", onclick => "return conf_dyn(\"config/preset\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
     end;
    end;
    Tr; th 'Module';

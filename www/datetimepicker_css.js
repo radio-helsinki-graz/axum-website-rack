@@ -22,8 +22,8 @@ var WeekDayName1;
 var WeekDayName2;
 var exDateTime;//Existing Date and Time
 var selDate;//selected date. version 1.7
-var calSpanID = "calBorder"; // span ID 
-var domStyle=null; // span DOM object with style 
+var calSpanID = "calBorder"; // span ID
+var domStyle=null; // span DOM object with style
 var cnLeft="0";//left coordinate of calendar span
 var cnTop="0";//top coordinate of calendar span
 var xpos=0; // mouse x position
@@ -40,7 +40,7 @@ var EndYear = 100; //End Year offset. i.e. Current Year + 5
 
 //var WindowTitle="DateTime Picker";//Date Time Picker title.
 
-var SpanBorderColor = "#FFFFFF";//span border color 
+var SpanBorderColor = "#FFFFFF";//span border color
 var SpanBgColor = "#FFFFFF";//span background color
 var WeekChar=2;//number of character for week day. if 2 then Mo,Tu,We. if 3 then Mon,Tue,Wed.
 var DateSeparator="-";//Date Separator, you can change it to "-" if you want.
@@ -106,7 +106,7 @@ function NewCssCal(pCtrl,pFormat,pScroller,pShowTime,pTimeMode,pHideSeconds) {
         else
         {
             Cal.ShowSeconds=false;
-        }    
+        }
 
 	}
 
@@ -117,7 +117,7 @@ function NewCssCal(pCtrl,pFormat,pScroller,pShowTime,pTimeMode,pHideSeconds) {
 
 	if (pFormat!=null)
 		Cal.Format=pFormat.toUpperCase();
-	else 
+	else
 	    Cal.Format="MMDDYYYY";
 
 	if (pScroller!=null) {
@@ -133,7 +133,7 @@ function NewCssCal(pCtrl,pFormat,pScroller,pShowTime,pTimeMode,pHideSeconds) {
 
 	if (exDateTime!="")	{ //Parse existing Date String
 		var Sp1;//Index of Date Separator 1
-		var Sp2;//Index of Date Separator 2 
+		var Sp2;//Index of Date Separator 2
 		var tSp1;//Index of Time Separator 1
 		var tSp1;//Index of Time Separator 2
 		var strMonth;
@@ -162,7 +162,7 @@ function NewCssCal(pCtrl,pFormat,pScroller,pShowTime,pTimeMode,pHideSeconds) {
 					strMonth = exDateTime.substring(8, 11);
 					strDate  = exDateTime.substring(0, 2);
 					strYear  = "20" + exDateTime.substring(11, 13);  //Hack, nur für Jahreszahlen ab 2000
-					
+
 				} else {
 					strMonth=exDateTime.substring(Sp1+1,Sp2);
 					strDate=exDateTime.substring(0,Sp1);
@@ -219,12 +219,12 @@ function NewCssCal(pCtrl,pFormat,pScroller,pShowTime,pTimeMode,pHideSeconds) {
 				strYear=exDateTime.substring(0,Sp1);
 			}
 
-		}		
+		}
 
 		if (isNaN(strMonth))
 			intMonth=Cal.GetMonthIndex(strMonth);
 		else
-			intMonth=parseInt(strMonth,10)-1;	
+			intMonth=parseInt(strMonth,10)-1;
 
 		if ((parseInt(intMonth,10)>=0) && (parseInt(intMonth,10)<12))
 			Cal.Month=intMonth;
@@ -275,9 +275,9 @@ function NewCssCal(pCtrl,pFormat,pScroller,pShowTime,pTimeMode,pHideSeconds) {
 				Cal.SetHour(strHour);
 				strMinute = exDateTime.substring(4, 6);
 				Cal.SetMinute(strMinute);
-				
+
 			}
-		}	
+		}
 
 	}
 
@@ -333,7 +333,7 @@ function RenderCssCal(bNewCal) {
 			if (i==Cal.Year)
 				SelectStr="Selected";
 			else
-				SelectStr="";	
+				SelectStr="";
 			vCalHeader+="<option "+SelectStr+" value="+i+">"+i+"</option>\n";
 
 		}
@@ -346,8 +346,8 @@ function RenderCssCal(bNewCal) {
 
 	//******************Month and Year selector in arrow*********************************
 
-    else if (Cal.Scroller=="ARROW")	
-    {	
+    else if (Cal.Scroller=="ARROW")
+    {
 
     if (UseImageFiles)
     {
@@ -393,7 +393,7 @@ function RenderCssCal(bNewCal) {
 	}
 
 	calHeight += 19;
-	vCalHeader+="</tr>\n";	
+	vCalHeader+="</tr>\n";
 	//Calendar detail
 	CalDate=new Date(Cal.Year,Cal.Month);
 	CalDate.setDate(1);
@@ -432,15 +432,15 @@ function RenderCssCal(bNewCal) {
 			if ((j==selDate.getDate())&&(Cal.Month==selDate.getMonth())&&(Cal.Year==selDate.getFullYear())) { //modified version 1.7
 				strCell=GenCell(j,true,SelDateColor);
 			}
-			else {	
+			else {
 				if (MondayFirstDay==true) {
 					if (vDayCount%7==0)
 						strCell=GenCell(j,false,SundayColor);
 					else if ((vDayCount+1)%7==0)
 						strCell=GenCell(j,false,SaturdayColor);
 					else
-						strCell=GenCell(j,null,WeekDayColor);					
-				} 
+						strCell=GenCell(j,null,WeekDayColor);
+				}
 				else {
 					if (vDayCount%7==0)
 						strCell=GenCell(j,false,SaturdayColor);
@@ -449,8 +449,8 @@ function RenderCssCal(bNewCal) {
 					else
 						strCell=GenCell(j,null,WeekDayColor);
 				}
-			}		
-		}						
+			}
+		}
 
 		vCalData=vCalData+strCell;
 
@@ -473,14 +473,14 @@ function RenderCssCal(bNewCal) {
 
 
 	//Time picker
-	if (Cal.ShowTime) 
+	if (Cal.ShowTime)
 	{
 		var showHour;
 		var ShowArrows=false;
 		var HourCellWidth="35px"; //cell width with seconds.
 		showHour=Cal.getShowHour();
 
-		if (Cal.ShowSeconds==false && TimeMode==24 ) 
+		if (Cal.ShowSeconds==false && TimeMode==24 )
         {
 		   ShowArrows=true;
 		   HourCellWidth="10px";
@@ -488,15 +488,15 @@ function RenderCssCal(bNewCal) {
 
 		vCalTime="\n<tr>\n<td colspan='7' align='center'><center>\n<table style='border: 0px border-collapse: separate' width='199px' cellpadding='0' cellspacing='2'>\n<tr>\n<td style='border: 0px' height='5px' width='"+HourCellWidth+"px'>&nbsp;</td>\n";
 
-		if (ShowArrows && UseImageFiles) 
-		{   
-            vCalTime+="<td align='center'><table cellspacing='0' cellpadding='0' style='line-height:0pt'><tr><td><img onmousedown='startSpin(\"Hour\", \"plus\");' onmouseup='stopSpin();' src='images/cal_plus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr><tr><td><img onmousedown='startSpin(\"Hour\", \"minus\");' onmouseup='stopSpin();' src='images/cal_minus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr></table></td>\n"; 
+		if (ShowArrows && UseImageFiles)
+		{
+            vCalTime+="<td align='center'><table cellspacing='0' cellpadding='0' style='line-height:0pt'><tr><td><img onmousedown='startSpin(\"Hour\", \"plus\");' onmouseup='stopSpin();' src='images/cal_plus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr><tr><td><img onmousedown='startSpin(\"Hour\", \"minus\");' onmouseup='stopSpin();' src='images/cal_minus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr></table></td>\n";
 		}
 
 		vCalTime+="<td style='border: 0px' align='center' width='22px'><input type='text' name='hour' maxlength=2 size=1 style=\"WIDTH:22px\" value="+showHour+" onChange=\"javascript:Cal.SetHour(this.value)\">";
 		vCalTime+="</td><td style='border: 0px' align='center' style='font-size:150%; font-weight:bold;'>:</td><td style='border: 0px' align='center' width='22px'>";
 		vCalTime+="<input type='text' name='minute' maxlength=2 size=1 style=\"WIDTH: 22px\" value="+Cal.Minutes+" onChange=\"javascript:Cal.SetMinute(this.value)\">";
-	
+
 		if (Cal.ShowSeconds) {
 			vCalTime+="</td><td style='border: 0px' align='center'>:</td><td style='border: 0px' align='center' width='22px'>";
 			vCalTime+="<input type='text' name='second' maxlength=2 size=1 style=\"WIDTH: 22px\" value="+Cal.Seconds+" onChange=\"javascript:Cal.SetSecond(parseInt(this.value,10))\">";
@@ -514,7 +514,7 @@ function RenderCssCal(bNewCal) {
 		}
 
 		if (ShowArrows && UseImageFiles) {
-		   vCalTime+="</td>\n<td align='center'><table cellspacing='0' cellpadding='0' style='line-height:0pt'><tr><td><img onmousedown='startSpin(\"Minute\", \"plus\");' onmouseup='stopSpin();' src='images/cal_plus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr><tr><td><img onmousedown='startSpin(\"Minute\", \"minus\");' onmouseup='stopSpin();' src='images/cal_minus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr></table>"; 
+		   vCalTime+="</td>\n<td align='center'><table cellspacing='0' cellpadding='0' style='line-height:0pt'><tr><td><img onmousedown='startSpin(\"Minute\", \"plus\");' onmouseup='stopSpin();' src='images/cal_plus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr><tr><td><img onmousedown='startSpin(\"Minute\", \"minus\");' onmouseup='stopSpin();' src='images/cal_minus.gif' width='13px' height='9px' onmouseover='changeBorder(this, 0)' onmouseout='changeBorder(this, 1)' style='border:1px solid white'></td></tr></table>";
 		}
 
 		vCalTime+="</td>\n<td style='border: 0px' align='right' valign='bottom' width='"+HourCellWidth+"px'>";
@@ -533,17 +533,17 @@ function RenderCssCal(bNewCal) {
     }
 
     vCalTime+="</tr>\n</table></center>\n</td>\n</tr>";
-    calHeight += 31;	
+    calHeight += 31;
 	vCalTime+="\n</table>\n</span>";
 
 	//end time picker
     var funcCalback="function callback(id, datum) {\n";
     funcCalback+="if (datum== 'undefined') { var d = new Date(); datum = d.getDate() + '/' +(d.getMonth()+1) + '/' + d.getFullYear(); } window.calDatum=datum;\n";
-    funcCalback+="location = 'setdatetime?date='+encodeURIComponent(datum)+'&time='+encodeURIComponent(Cal.getShowHour()+':'+Cal.Minutes+':'+Cal.Seconds);\n}\n";
-	
+    funcCalback+="location = '/config/setdatetime?date='+encodeURIComponent(datum)+'&time='+encodeURIComponent(Cal.getShowHour()+':'+Cal.Minutes+':'+Cal.Seconds);\n}\n";
+
 	// determines if there is enough space to open the cal above the position where it is called
 	if (ypos > calHeight) {
-	   ypos = ypos - calHeight; 
+	   ypos = ypos - calHeight;
 	}
 
 	if (winCal == undefined) {
@@ -560,13 +560,13 @@ function RenderCssCal(bNewCal) {
 	   var cssStr = ".calTD {font-family: verdana; font-size: 12px; text-align: center; border:0 }\n";
 	   //cssStr+= ".calR {font-family: verdana; font-size: 12px; text-align: center; font-weight: bold; color: red;}"
 		cssStr+= ".calR {font-family: verdana; font-size: 12px; text-align: center; font-weight: bold;}"
-	   
+
 	   var style = document.createElement("style");
        style.type = "text/css";
        style.rel = "stylesheet";
        if(style.styleSheet) { // IE
           style.styleSheet.cssText = cssStr;
-        } 
+        }
 
 	   else { // w3c
           var cssText = document.createTextNode(cssStr);
@@ -635,17 +635,17 @@ function GenCell(pValue,pHighLight,pColor) { //Generate table cell with value
 			vTimeStr+=':'+Cal.Seconds;
 		if (TimeMode==12)
 			vTimeStr+=' '+Cal.AMorPM;
-	}	
+	}
 
 	else
-		vTimeStr="";		
+		vTimeStr="";
 
 	if (PValue!="") {
 		//PCellStr="\n<td "+vColor+" class='calTD' style='cursor: pointer;' onmouseover='changeBorder(this, 0);' onmouseout='changeBorder(this, 1);' onClick=\"javascript:callback('"+Cal.Ctrl+"','"+Cal.FormatDate(PValue)+"');\">"+vHLstr1+PValue+vHLstr2+"</td>";
 
 		if(pColor == SaturdayColor || pColor == SundayColor || pColor == SelDateColor || pColor == TodayColor) {
 			PCellStr="\n<td "+vColor+" class='calTD' style='cursor: pointer;' onmouseover='changeBorder(this, 0);' onmouseout=\"changeBorder(this, 1, '"+pColor+"');\" onClick=\"javascript:callback('"+Cal.Ctrl+"','"+Cal.FormatDate(PValue)+"');\">"+vHLstr1+PValue+vHLstr2+"</td>";
-		
+
 		}
 		else {
 			PCellStr="\n<td "+vColor+" class='calTD' style='cursor: pointer;' onmouseover='changeBorder(this, 0);' onmouseout='changeBorder(this, 1);' onClick=\"javascript:callback('"+Cal.Ctrl+"','"+Cal.FormatDate(PValue)+"');\">"+vHLstr1+PValue+vHLstr2+"</td>";
@@ -676,9 +676,9 @@ function Calendar(pDate,pCtrl) {
 
 	if (pDate.getSeconds()<10)
 		this.Seconds="0"+pDate.getSeconds();
-	else		
+	else
 		this.Seconds=pDate.getSeconds();
-	
+
 
 	this.MyWindow=winCal;
 	this.Ctrl=pCtrl;
@@ -691,14 +691,14 @@ function Calendar(pDate,pCtrl) {
 	else
 		this.AMorPM="PM";
 
-	this.ShowSeconds=true;		
+	this.ShowSeconds=true;
 }
 
 
 
 function GetMonthIndex(shortMonthName) {
 	for (i=0;i<12;i++) {
-		if (MonthName[i].substring(0,3).toUpperCase()==shortMonthName.toUpperCase()) 
+		if (MonthName[i].substring(0,3).toUpperCase()==shortMonthName.toUpperCase())
 		   {return i;}
 	}
 }
@@ -713,7 +713,7 @@ function DecYear() {
 	Cal.Year--;}
 	Calendar.prototype.DecYear=DecYear;
 
-function IncMonth() {	
+function IncMonth() {
 	Cal.Month++;
 	if (Cal.Month>=12) {
 		Cal.Month=0;
@@ -723,7 +723,7 @@ function IncMonth() {
 
 Calendar.prototype.IncMonth=IncMonth;
 
-function DecMonth() {	
+function DecMonth() {
 	Cal.Month--;
 	if (Cal.Month<0) {
 		Cal.Month=11;
@@ -741,7 +741,7 @@ function SwitchYear(intYear) {
 	Cal.Year=intYear;}
 	Calendar.prototype.SwitchYear=SwitchYear;
 
-function SetHour(intHour) {	
+function SetHour(intHour) {
 	var MaxHour;
 	var MinHour;
 	if (TimeMode==24) {
@@ -749,7 +749,7 @@ function SetHour(intHour) {
 	else if (TimeMode==12) {
 		MaxHour=12;MinHour=1}
 	else
-		alert("TimeMode can only be 12 or 24");		
+		alert("TimeMode can only be 12 or 24");
 
 	var HourExp=new RegExp("^\\d\\d");
 	var SingleDigit=new RegExp("\\d");
@@ -763,16 +763,16 @@ function SetHour(intHour) {
 	}
 
 	if (SingleDigit.test(intHour)) {
-		intHour="0"+intHour+"";	
+		intHour="0"+intHour+"";
 	}
 
-	if (HourExp.test(intHour) && (parseInt(intHour,10)<=MaxHour) && (parseInt(intHour,10)>=MinHour)) {	
+	if (HourExp.test(intHour) && (parseInt(intHour,10)<=MaxHour) && (parseInt(intHour,10)>=MinHour)) {
 		if ((TimeMode==12) && (Cal.AMorPM=="PM")) {
 			if (parseInt(intHour,10)==12)
 				Cal.Hours=12;
-			else	
+			else
 				Cal.Hours=parseInt(intHour,10)+12;
-		}	
+		}
 
 		else if ((TimeMode==12) && (Cal.AMorPM=="AM")) {
 			if (intHour==12)
@@ -782,7 +782,7 @@ function SetHour(intHour) {
 		}
 
 		else if (TimeMode==24)
-			Cal.Hours=parseInt(intHour,10);	
+			Cal.Hours=parseInt(intHour,10);
 	}
 
 }
@@ -808,9 +808,9 @@ function SetMinute(intMin) {
 	var strMin = intMin + "";
 	if (SingleDigit2.test(intMin)) {
 		strMin="0"+strMin+"";
-	} 
+	}
 
-	if ((MinExp.test(intMin) || SingleDigit.test(intMin)) 
+	if ((MinExp.test(intMin) || SingleDigit.test(intMin))
 	 && (parseInt(intMin,10)<=59) && (parseInt(intMin,10)>=0)) {
 
 	 	Cal.Minutes=strMin;
@@ -819,7 +819,7 @@ function SetMinute(intMin) {
 
 Calendar.prototype.SetMinute=SetMinute;
 
-function SetSecond(intSec) {	
+function SetSecond(intSec) {
 	var MaxSec=59;
 	var MinSec=0;
 
@@ -838,9 +838,9 @@ function SetSecond(intSec) {
 	var strSec = intSec + "";
 	if (SingleDigit2.test(intSec)) {
 		strSec="0"+strSec+"";
-	} 
+	}
 
-	if ((SecExp.test(intSec) || SingleDigit.test(intSec)) 
+	if ((SecExp.test(intSec) || SingleDigit.test(intSec))
 	 && (parseInt(intSec,10)<=59) && (parseInt(intSec,10)>=0)) {
 
 	 	Cal.Seconds=strSec;
@@ -857,10 +857,10 @@ function SetAmPm(pvalue) {
 		this.Hours=(parseInt(this.Hours,10))+12;
 		if (this.Hours==24)
   		    this.Hours=12;
-	}	
+	}
 
 	else if (pvalue=="AM")
-		this.Hours-=12;	
+		this.Hours-=12;
 }
 
 Calendar.prototype.SetAmPm=SetAmPm;
@@ -871,13 +871,13 @@ function getShowHour() {
     if (TimeMode==12) {
     	if (parseInt(this.Hours,10)==0) {
 			this.AMorPM="AM";
-			finalHour=parseInt(this.Hours,10)+12;	
+			finalHour=parseInt(this.Hours,10)+12;
 		}
 
 		else if (parseInt(this.Hours,10)==12) {
 			this.AMorPM="PM";
 			finalHour=12;
-		}		
+		}
 
 		else if (this.Hours>12)	{
 			this.AMorPM="PM";
@@ -885,7 +885,7 @@ function getShowHour() {
 
 				finalHour="0"+((parseInt(this.Hours,10))-12);
 			else
-				finalHour=parseInt(this.Hours,10)-12;	
+				finalHour=parseInt(this.Hours,10)-12;
 		}
 		else {
 			this.AMorPM="AM";
@@ -893,27 +893,27 @@ function getShowHour() {
 
 				finalHour="0"+parseInt(this.Hours,10);
 			else
-				finalHour=this.Hours;	
+				finalHour=this.Hours;
 		}
 	}
 
 	else if (TimeMode==24) {
 		if (this.Hours<10)
 			finalHour="0"+parseInt(this.Hours,10);
-		else	
+		else
     		finalHour=this.Hours;
 	}
 
 	return finalHour;
-}				
+}
 
-Calendar.prototype.getShowHour=getShowHour;		
+Calendar.prototype.getShowHour=getShowHour;
 
 function getShowAMorPM() {
-	return this.AMorPM;	
-}				
+	return this.AMorPM;
+}
 
-Calendar.prototype.getShowAMorPM=getShowAMorPM;		
+Calendar.prototype.getShowAMorPM=getShowAMorPM;
 
 function GetMonthName(IsLong) {
 	var Month=MonthName[this.Month];
@@ -930,9 +930,9 @@ function GetMonDays() { //Get number of days in a month
 	var DaysInMonth=[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 	if (this.IsLeapYear()) {
 		DaysInMonth[1]=29;
-	}	
+	}
 
-	return DaysInMonth[this.Month];	
+	return DaysInMonth[this.Month];
 }
 
 Calendar.prototype.GetMonDays=GetMonDays;
@@ -976,12 +976,12 @@ function FormatDate(pDate)
 	else if (this.Format.toUpperCase()=="YYYYMMDD")
 		return (this.Year+DateSeparator+MonthDigit+DateSeparator+pDate);
 	else if (this.Format.toUpperCase()=="YYMMDD")
-		return (String(this.Year).substring(2,4)+DateSeparator+MonthDigit+DateSeparator+pDate);	
+		return (String(this.Year).substring(2,4)+DateSeparator+MonthDigit+DateSeparator+pDate);
 	else if (this.Format.toUpperCase()=="YYMMMDD")
-		return (String(this.Year).substring(2,4)+DateSeparator+this.GetMonthName(false)+DateSeparator+pDate);				
+		return (String(this.Year).substring(2,4)+DateSeparator+this.GetMonthName(false)+DateSeparator+pDate);
 	else if (this.Format.toUpperCase()=="YYYYMMMDD")
-		return (this.Year+DateSeparator+this.GetMonthName(false)+DateSeparator+pDate);	
-	else					
+		return (this.Year+DateSeparator+this.GetMonthName(false)+DateSeparator+pDate);
+	else
 		return (pDate+DateSeparator+(this.Month+1)+DateSeparator+this.Year);
 }
 
@@ -1031,7 +1031,7 @@ function pickIt(evt) {
 	  // get mouse position on click
 	  xpos = (evt.pageX);
 	  ypos = (evt.pageY);
-	}   
+	}
 
    else { // IE
 	  var objectID = event.srcElement.id;
@@ -1046,12 +1046,12 @@ function pickIt(evt) {
       ypos = event.clientY + (de.scrollTop || b.scrollTop) - (de.clientTop || 0);
     }
 
-   // verify if this is a valid element to pick  
+   // verify if this is a valid element to pick
    if (objectID.indexOf(calSpanID) != -1){
       domStyle = document.getElementById(objectID).style;
     }
 
-   if (domStyle) { 
+   if (domStyle) {
       domStyle.zIndex = 100;
       return false;
     }
@@ -1070,23 +1070,23 @@ function dragIt(evt) {
          domStyle.left = (event.clientX-cnLeft + document.body.scrollLeft)+'px';
          domStyle.top = (event.clientY-cnTop + document.body.scrollTop)+'px';
        } else {  //Firefox
-         domStyle.left = (evt.clientX-cnLeft + document.body.scrollLeft)+'px'; 
+         domStyle.left = (evt.clientX-cnLeft + document.body.scrollLeft)+'px';
          domStyle.top = (evt.clientY-cnTop + document.body.scrollTop)+'px';
        }
-    } 
+    }
  }
 
 
 
 function dropIt() {
 	stopSpin();
-	
-   if (domStyle) { 
+
+   if (domStyle) {
       domStyle = null;
     }
  }
- 
- 
+
+
 // starts the time spinner
 function startSpin(whatSpinner, direction) {
 	document.thisLoop = setInterval("nextStep('"+whatSpinner+"', '"+direction+"');", 125); //125 ms
@@ -1107,7 +1107,7 @@ function nextStep(whatSpinner, direction) {
 			Cal.SetMinute(parseInt(Cal.Minutes,10) - 1); RenderCssCal();
 		}
 	}
-	
+
 }
 
 //stops the time spinner

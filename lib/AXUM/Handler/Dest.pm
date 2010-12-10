@@ -7,10 +7,10 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{dest} => \&dest,
-  qr{dest/generate}   => \&generate,
-  qr{ajax/dest} => \&ajax,
-  qr{ajax/outputlist} => \&outputlist,
+  qr{config/dest} => \&dest,
+  qr{config/dest/generate}   => \&generate,
+  qr{ajax/config/dest} => \&ajax,
+  qr{ajax/config/outputlist} => \&outputlist,
 );
 
 
@@ -32,16 +32,16 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", "%s", this, "dest_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/dest", %d, "%s", "%s", this, "dest_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($n eq 'level') {
-    a href => '#', onclick => sprintf('return conf_level("dest", %d, "level", %f, this)', $d->{number}, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/dest", %d, "level", %f, this)', $d->{number}, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("dest", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/dest", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if ($n =~ /^output([12])/) {
     $v = (grep $_->{addr} == $d->{'output'.$1.'_addr'} && $_->{channel} == $d->{'output'.$1.'_sub_ch'}, @$lst)[0];
@@ -57,12 +57,12 @@ sub _col {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")',
+    a href => '#', onclick => sprintf('return conf_select("config/dest", %d, "%s", %d, this, "%s")',
         $d->{number}, $n, $v, $n eq 'source' ? 'source_items' : 'mix_minus_items'),
       !($v > 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
   }
   if($n eq 'routing') {
-    a href => '#', onclick => sprintf('return conf_select("dest", %d, "%s", %d, this, "%s")', $d->{number}, $n, $v, $d->{mix_minus_source}?('hybrid_routing_list'):('routing_list')),
+    a href => '#', onclick => sprintf('return conf_select("config/dest", %d, "%s", %d, this, "%s")', $d->{number}, $n, $v, $d->{mix_minus_source}?('hybrid_routing_list'):('routing_list')),
       $v == 0 ? (class => 'off') : (), $d->{mix_minus_source} ? ($hybrid_routing_types[$v]) : ($routing_types[$v]);
   }
 }
@@ -88,7 +88,7 @@ sub _create_dest {
 
   # get new free destination number
   my $num = $self->dbRow(q|SELECT gen
-    FROM generate_series(1, COALESCE((SELECT MAX(number)+1 FROM src_config), 1)) AS g(gen)
+    FROM generate_series(1, COALESCE((SELECT MAX(number)+1 FROM dest_config), 1)) AS g(gen)
     WHERE NOT EXISTS(SELECT 1 FROM dest_config WHERE number = gen)
     LIMIT 1|
   )->{gen};
@@ -97,7 +97,7 @@ sub _create_dest {
     $num, $f->{label}, $outputs[0], $outputs[1], $outputs[2], $outputs[3]));
   $self->dbExec("SELECT dest_config_renumber();");
 
-  $self->resRedirect('/dest', 'post');
+  $self->resRedirect('/config/dest', 'post');
 }
 
 
@@ -109,7 +109,7 @@ sub dest {
   if(!$f->{_err}) {
     $self->dbExec('DELETE FROM dest_config WHERE number = ?', $f->{del});
     $self->dbExec("SELECT dest_config_renumber();");
-    return $self->resRedirect('/dest', 'temp');
+    return $self->resRedirect('/config/dest', 'temp');
   }
 
   my $ch = _channels $self;
@@ -123,7 +123,7 @@ sub dest {
     output1_sub_ch, output2_addr, output2_sub_ch, level, source, routing, mix_minus_source
     FROM dest_config ORDER BY pos|);
 
-  $self->htmlHeader(page => 'dest', title => 'Destination configuration');
+  $self->htmlHeader(title => 'Destination configuration', area => 'config', page => 'dest');
   div id => 'output_channels', class => 'hidden';
    Select;
     option value => "$_->{addr}_$_->{channel}", $_->{active} ? () : (class => 'off'),
@@ -195,7 +195,7 @@ sub dest {
       td; _col 'routing', $d; end;
       td; _col 'mix_minus_source', $d, $src_lst; end;
       td;
-       a href => '/dest?del='.$d->{number}, title => 'Delete';
+       a href => '/config/dest?del='.$d->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
@@ -233,7 +233,7 @@ sub generate {
       $self->dbExec("SELECT dest_config_renumber()");
     }
   }
-  $self->resRedirect('/dest', 'post');
+  $self->resRedirect('/config/dest', 'post');
 }
 
 sub ajax {

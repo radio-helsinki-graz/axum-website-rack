@@ -6,8 +6,8 @@ use warnings;
 use YAWF ':html';
 
 YAWF::register(
-  qr{consolepreset}               => \&consolepreset,
-  qr{ajax/consolepreset}             => \&ajax,
+  qr{config/consolepreset}               => \&consolepreset,
+  qr{ajax/config/consolepreset}             => \&ajax,
 );
 
 my @buss_names = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
@@ -20,12 +20,12 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "console_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
+    a href => '#', onclick => sprintf('return conf_select("config/consolepreset", %d, "%s", "%s", this, "console_preset_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
   if($n eq 'label') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
+    a href => '#', onclick => sprintf('return conf_text("config/consolepreset", %d, "label", "%s", this)', $d->{number}, $jsval), $v;
   }
   if ($n eq 'mod_preset') {
     my $label = 'none';
@@ -36,7 +36,7 @@ sub _col {
     } else {
       $v = 'NULL';
     }
-    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "mod_preset_list", "Select module preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ($label);
+    a href => '#', onclick => sprintf('return conf_select("config/consolepreset", %d, "%s", "%s", this, "mod_preset_list", "Select module preset", "Save")', $d->{number}, $n, $v), $v eq 'NULL' ? ('None') : ($label);
   }
   if ($n eq 'buss_preset') {
     my $s->{label} = 'None';
@@ -45,15 +45,15 @@ sub _col {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("consolepreset", %d, "%s", "%s", this, "buss_preset_list", "Select buss preset", "Save")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/consolepreset", %d, "%s", "%s", this, "buss_preset_list", "Select buss preset", "Save")', $d->{number}, $n, $v),
       ($s->{label} eq 'none') ? (class => 'off') : (), $s->{label};
   }
   if ($n =~ /console[1|2|3|4]/) {
-   a href => '#', onclick => sprintf('return conf_set("consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
+   a href => '#', onclick => sprintf('return conf_set("config/consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
      $v ? 'y' : (class => 'off', 'n');
   }
   if ($n =~ /recall_time$/) {
-    a href => '#', onclick => sprintf('return conf_text("consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v), "$v Sec";
+    a href => '#', onclick => sprintf('return conf_text("config/consolepreset", %d, "%s", "%s", this)', $d->{number}, $n, $v), "$v Sec";
   }
 }
 
@@ -76,7 +76,7 @@ sub _create_console_preset {
     INSERT INTO console_preset (number, label) VALUES (!l)|,
     [ $num, $f->{label}]);
   $self->dbExec("SELECT console_preset_renumber()");
-  $self->resRedirect('/consolepreset', 'post');
+  $self->resRedirect('/config/consolepreset', 'post');
 }
 
 sub consolepreset {
@@ -90,14 +90,14 @@ sub consolepreset {
   if(!$f->{_err}) {
     $self->dbExec('DELETE FROM console_preset WHERE number = ?', $f->{del});
     $self->dbExec("SELECT console_preset_renumber()");
-    return $self->resRedirect('/consolepreset', 'temp');
+    return $self->resRedirect('/config/consolepreset', 'temp');
   }
   my $presets = $self->dbAll(q|SELECT pos, number, label, console1, console2, console3, console4, mod_preset, buss_preset, safe_recall_time, forced_recall_time
     FROM console_preset ORDER BY pos|);
 
   my $buss_preset = $self->dbAll(q|SELECT pos, number, label FROM buss_preset ORDER BY pos|);
 
-  $self->htmlHeader(title => 'Console presets', page => 'consolepreset');
+  $self->htmlHeader(title => 'Console presets', area => 'config', page => 'consolepreset');
   div id => 'console_preset_list', class => 'hidden';
    Select;
     my $max_pos;
@@ -160,7 +160,7 @@ sub consolepreset {
       td; _col 'safe_recall_time', $p; end;
       td; _col 'forced_recall_time', $p; end;
       td;
-       a href => '/consolepreset?del='.$p->{number}, title => 'Delete';
+       a href => '/config/consolepreset?del='.$p->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;

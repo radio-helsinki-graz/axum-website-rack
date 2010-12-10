@@ -4,18 +4,18 @@ package AXUM::Handler::Module;
 use strict;
 use warnings;
 use YAWF ':html';
-
+use Data::Dumper;
 
 YAWF::register(
-  qr{module} => \&overview,
-  qr{module/([1-9][0-9]*)} => \&conf,
-  qr{ajax/module} => \&ajax,
-  qr{ajax/module/([A|B|C|D|E|F|G|H])} => \&rpajax,
-  qr{ajax/module/([1-9][0-9]*)/([A|B|C|D|E|F|G|H])} => \&rptableajax,
-  qr{ajax/module/([1-9][0-9]*)/eq} => \&eqajax,
-  qr{ajax/module/([1-9][0-9]*)/dyn} => \&dynajax,
-  qr{ajax/module/([1-9][0-9]*)/startup} => \&startupajax,
-  qr{ajax/module2console} => \&m2cajax,
+  qr{config/module} => \&overview,
+  qr{config/module/([1-9][0-9]*)} => \&conf,
+  qr{ajax/config/module} => \&ajax,
+  qr{ajax/config/module/([A|B|C|D|E|F|G|H])} => \&rpajax,
+  qr{ajax/config/module/([1-9][0-9]*)/([A|B|C|D|E|F|G|H])} => \&rptableajax,
+  qr{ajax/config/module/([1-9][0-9]*)/eq} => \&eqajax,
+  qr{ajax/config/module/([1-9][0-9]*)/dyn} => \&dynajax,
+  qr{ajax/config/module/([1-9][0-9]*)/startup} => \&startupajax,
+  qr{ajax/config/module2console} => \&m2cajax,
 );
 
 my @phase_types = ('Normal', 'Left', 'Right', 'Both');
@@ -88,7 +88,7 @@ sub overview {
                                ORDER BY number', $p*32-31, $p*32, $where, $p*32-31, $p*32);
   my $dspcount = $self->dbRow('SELECT dsp_count() AS cnt')->{cnt};
 
-  $self->htmlHeader(page => 'module', title => 'Module overview');
+  $self->htmlHeader(title => 'Module overview', area => 'config', page => 'module');
   table;
    Tr;
     th colspan => 10;
@@ -129,8 +129,8 @@ sub overview {
             $u += $rp{$src}->{$busses[$b->{number}-1].'_use_preset'};
            }
            td;
-            a href => "/module/$mod->[$_]{number}",
-             !$mod->[$_]{"active_$src"} || !$mod->[$_]{"label_$src"} || ($mod->[$_]{"label_$src"} eq 'none') ? (class => 'off') : (), $mod->[$_]{"label_$src"}.($mod->[$_]{"label_".$src."_preset"}?(' ('.$mod->[$_]{"label_".$src."_preset"}.')') : ()).($u?(' - #'):()) ||'none';
+            a href => "/config/module/$mod->[$_]{number}",
+             (!$mod->[$_]{"active_$src"} || !$mod->[$_]{"label_$src"} || ($mod->[$_]{"label_$src"} eq 'none')) ? (class => 'off') : (), $mod->[$_]{"label_$src"}.($mod->[$_]{"label_".$src."_preset"}?(' ('.$mod->[$_]{"label_".$src."_preset"}.')') : ('')).($u?(' - #'):('')) ||'none';
            end;
         }
        end;
@@ -144,7 +144,7 @@ sub overview {
                       $mod->[$_]{dyn_on_off});
 
          td;
-          a href => "/module/$mod->[$_]{number}", $active ? () : (class => 'off');
+          a href => "/config/module/$mod->[$_]{number}", $active ? () : (class => 'off');
            txt $mod->[$_]{lc_on_off} ? ('LC ') : ();
            txt $mod->[$_]{insert_on_off} ? ('Ins ') : ();
            txt $mod->[$_]{eq_on_off} ? ('EQ ') : ();
@@ -166,7 +166,7 @@ sub overview {
           my @array = @$buss_cfg;
           my $enabled = "";
           ($enabled .= ($array[$_]{number} eq $mod->[$nr]{number})) for 0..$#array;
-          a href => "/module/$mod->[$_]{number}", ($enabled) ? ('active') : (class => 'off', 'none');
+          a href => "/config/module/$mod->[$_]{number}", ($enabled) ? ('active') : (class => 'off', 'none');
         end;
       }
      end;
@@ -184,7 +184,7 @@ sub _col {
   my $v = $d->{$n};
 
   #globals if 'routing preset A/B/C/D' are selected instead of module settings
-  my $url = $lst ? ("module/$lst") : ("module");
+  my $url = $lst ? ("config/module/$lst") : ("config/module");
   my $number = $lst ? ($d->{mod_number}) : ($d->{number});
 
   if(($n =~ /^source_[a|b|c|d|e|f|g|h]$/) or ($n eq 'insert_source')) {
@@ -195,18 +195,21 @@ sub _col {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/module", %d, "%s", %d, this, "matrix_sources")', $d->{number}, $n, $v),
       !($v != 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
   }
   if ($n =~ /source_[a|b|c|d|e|f|g|h]_preset/) {
     my $s;
+
+    $v = 0 if not defined $v;
+
     for my $l (@$lst) {
       if ($l->{number} == $v)
       {
         $s = $l;
       }
     }
-    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "processing_preset_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/module", %d, "%s", %d, this, "processing_preset_list")', $d->{number}, $n, $v),
       !$v ? (class => 'off') : (), $v ? $s->{label} : 'none';
   }
   if($n eq 'overrule_active') {
@@ -214,7 +217,7 @@ sub _col {
       $v ? 'yes' : (class => 'off', 'no');
   }
   if($n eq 'gain') {
-    a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_level("config/module", %d, "%s", %f, this)', $d->{number}, $n, $v),
       $v == 0 ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n =~ /.+_on_off/) {
@@ -222,20 +225,20 @@ sub _col {
       $v ? 'on' : (class => 'off', 'off');
   }
   if($n eq 'lc_frequency') {
-    a href => '#', onclick => sprintf('return conf_freq("module", %d, "lc_frequency", %d, this)', $d->{number}, $v),
+    a href => '#', onclick => sprintf('return conf_freq("config/module", %d, "lc_frequency", %d, this)', $d->{number}, $v),
       sprintf '%d Hz', $v;
   }
   if($n eq 'phase') {
-    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "phase_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/module", %d, "%s", %d, this, "phase_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $phase_types[$v];
   }
   if($n eq 'mono') {
-    a href => '#', onclick => sprintf('return conf_select("module", %d, "%s", %d, this, "mono_list")', $d->{number}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("config/module", %d, "%s", %d, this, "mono_list")', $d->{number}, $n, $v),
       $v == 3 ? (class => 'off') : (), $mono_types[$v];
   }
   if($n =~ /level$/) {
     if($n eq 'mod_level') {
-      a href => '#', onclick => sprintf('return conf_level("module", %d, "%s", %f, this)', $d->{number}, $n, $v),
+      a href => '#', onclick => sprintf('return conf_level("config/module", %d, "%s", %f, this)', $d->{number}, $n, $v),
         $v < -120 ? (class => 'off') : (), $v < -120 ? (sprintf 'off') : (sprintf '%.1f dB', $v);
     } else {
       a href => '#', onclick => sprintf('return conf_level("%s", %d, "%s", %f, this)', $url, $number, $n, $v),
@@ -258,7 +261,7 @@ sub _col {
   }
   if ($n =~ /^m2c_(\w+)/) {
     lit '&raquo;';
-    a href => '#', onclick => sprintf('return conf_set_remove("module2console", %d, "%s", 1, this, 0)', $number, $1), class => 'off', "To all console $d->{console} modules";
+    a href => '#', onclick => sprintf('return conf_set_remove("config/module2console", %d, "%s", 1, this, 0)', $number, $1), class => 'off', "To all console $d->{console} modules";
   }
 }
 
@@ -480,7 +483,7 @@ sub conf {
   my $processing_preset_lst = $self->dbAll(q|SELECT number, label FROM processing_presets ORDER BY pos|);
   my $bus = $self->dbAll('SELECT number, label FROM buss_config ORDER BY number');
 
-  $self->htmlHeader(page => 'module', section => $nr, title => "Module $nr configuration");
+  $self->htmlHeader(title => "Module $nr configuration", area => 'config', page => 'module', section => $nr);
   $self->htmlSourceList($pos_lst, 'matrix_sources');
   div id => 'processing_preset_list', class => 'hidden';
     Select;
@@ -551,7 +554,7 @@ sub conf {
      th ((ord($s)&1) ? ('A'):('B'));
      td; _col "source_$s", $mod, $src_lst; end;
      td; _col "source_${s}_preset", $mod, $processing_preset_lst; end;
-     td; a href => "#", onclick => "return conf_rtng(\"module/$nr\", this, \"$s\")", ($u == 0) ? (class => 'off', 'none') : ('active'); end;
+     td; a href => "#", onclick => "return conf_rtng(\"config/module/$nr\", this, \"$s\")", ($u == 0) ? (class => 'off', 'none') : ('active'); end;
      if ($s eq 'a') {
       td rowspan=>8; _col 'overrule_active', $mod; end;
      }
@@ -602,7 +605,7 @@ sub conf {
     td; _col 'use_eq_preset', $mod; end;
     td; _col 'eq_on_off', $mod; end;
     td;
-     a href => "#", onclick => "return conf_eq(\"module\", this, $nr)"; lit 'EQ settings &raquo;'; end;
+     a href => "#", onclick => "return conf_eq(\"config/module\", this, $nr)"; lit 'EQ settings &raquo;'; end;
     end;
    td; _col 'm2c_eq', $mod; end;
    end;
@@ -610,7 +613,7 @@ sub conf {
     td; _col 'use_dyn_preset', $mod; end;
     td; _col 'dyn_on_off', $mod; end;
     td;
-     a href => "#", onclick => "return conf_dyn(\"module\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
+     a href => "#", onclick => "return conf_dyn(\"config/module\", this, $nr)"; lit 'Dyn settings &raquo;'; end;
     end;
     td; _col 'm2c_dyn', $mod; end;
    end;
@@ -626,7 +629,7 @@ sub conf {
    Tr; td style => 'background: none', ''; end;
    Tr;
     td style => 'background: none';
-     input type => 'button', onclick => "conf_set_remove('module/$nr/startup', null, null, null, this);", value => "Set module $nr to programmed startup state";
+     input type => 'button', onclick => "conf_set_remove('config/module/$nr/startup', null, null, null, this);", value => "Set module $nr to programmed startup state";
     end;
    end;
   end;
@@ -852,7 +855,7 @@ sub startupajax {
 
   $self->dbExec('INSERT INTO recent_changes (change, arguments) VALUES(\'set_module_to_startup_state\', ?)', $nr);
 
-  input type => 'button', onclick => "conf_set_remove('module/$nr/startup', null, null, null, this);", value => "Set module $nr to programmed startup state";
+  input type => 'button', onclick => "conf_set_remove('config/module/$nr/startup', null, null, null, this);", value => "Set module $nr to programmed startup state";
 }
 
 

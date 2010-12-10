@@ -7,12 +7,12 @@ use URI::Escape;
 
 
 YAWF::register(
-  qr{service/mambanet} => \&list,
-  qr{service/predefined} => \&listpre,
-  qr{service/templates} => \&listtemp,
-  qr{ajax/mambanet} => \&ajax,
-  qr{ajax/id_list} => \&id_list,
-  qr{ajax/change_conf} => \&change_conf,
+  qr{system/mambanet} => \&list,
+  qr{system/predefined} => \&listpre,
+  qr{system/templates} => \&listtemp,
+  qr{ajax/system/mambanet} => \&ajax,
+  qr{ajax/system/id_list} => \&id_list,
+  qr{ajax/system/change_conf} => \&change_conf,
 );
 
 my @user_level_from_names = ('None', map +( sprintf('Console %d', $_), 1..4));
@@ -26,7 +26,7 @@ sub _col {
     $v = sprintf '%08X', $v if $n eq 'addr';
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $v =~ s/"/\\"/g;
-    a href => '#', onclick => sprintf('return conf_text("mambanet", "%s", "%s", "%s", this)', $c->{addr}, $n, $jsval),
+    a href => '#', onclick => sprintf('return conf_text("system/mambanet", "%s", "%s", "%s", this)', $c->{addr}, $n, $jsval),
       $n eq 'engine_addr' && $v eq '00000000' ? (class => 'off') : (), $v;
   }
   elsif ($n eq 'id') {
@@ -42,7 +42,7 @@ sub _col {
     }
   }
   elsif ($n eq 'user_level_from_console') {
-    a href => '#', onclick => sprintf('return conf_select("mambanet", "%s", "%s", %d, this, "console_list")', $c->{addr}, $n, $v),
+    a href => '#', onclick => sprintf('return conf_select("system/mambanet", "%s", "%s", %d, this, "console_list")', $c->{addr}, $n, $v),
       $user_level_from_names[$v];
   }
 }
@@ -56,7 +56,7 @@ sub list {
   if(!$f->{_err}) {
     $f->{del} ? ($self->dbExec('DELETE FROM addresses WHERE addr = ?', $f->{del})) : ();
     $f->{refresh} ? ($self->dbExec('UPDATE addresses SET refresh = TRUE WHERE addr = ?', $f->{refresh})) : ();
-    ($f->{del} or $f->{refresh}) ? (return $self->resRedirect('/service/mambanet', 'temp')) : ();
+    ($f->{del} or $f->{refresh}) ? (return $self->resRedirect('/system/mambanet', 'temp')) : ();
   }
 
   my $cards = $self->dbAll('SELECT a.addr, a.id, a.name, a.active, a.engine_addr, a.parent, a.user_level_from_console, a.firm_major, b.name AS parent_name,
@@ -68,7 +68,7 @@ sub list {
     LEFT JOIN addresses b ON (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id
     ORDER BY a.addr');
 
-  $self->htmlHeader(title => 'MambaNet configuration', page => 'service', section => 'mambanet');
+  $self->htmlHeader(title => 'MambaNet configuration', area => 'system', page => 'mambanet');
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, $user_level_from_names[$_] for (0..4);
@@ -103,12 +103,12 @@ sub list {
       td !$c->{temp_cnt} ? (class => 'inactive') : (), $c->{temp_cnt};
       td valign => 'middle';
        if (!$c->{active}) {
-         a href => '/service/mambanet?del='.$c->{addr}, title => 'Delete';
+         a href => '/system/mambanet?del='.$c->{addr}, title => 'Delete';
           img src => '/images/delete.png', alt => 'delete';
          end;
        }
        else {
-         a href => '/service/mambanet?refresh='.$c->{addr}, title => 'Refresh';
+         a href => '/system/mambanet?refresh='.$c->{addr}, title => 'Refresh';
            img src => '/images/refresh.png', alt => 'refresh';
          end;
        }
@@ -134,7 +134,7 @@ sub listpre {
   if(!$f->{_err}) {
     $f->{del} ? ($self->dbExec('DELETE FROM predefined_node_config WHERE cfg_name = ? AND man_id = ? AND prod_id = ? AND firm_major = ?', $f->{del}, $f->{man}, $f->{prod}, $f->{firm})) : ();
     $f->{del} ? ($self->dbExec('DELETE FROM predefined_node_defaults WHERE cfg_name = ? AND man_id = ? AND prod_id = ? AND firm_major = ?', $f->{del}, $f->{man}, $f->{prod}, $f->{firm})) : ();
-    $f->{del} ? (return $self->resRedirect('/service/predefined', 'temp')) : ();
+    $f->{del} ? (return $self->resRedirect('/system/predefined', 'temp')) : ();
   }
 
   my $pre_cfg = $self->dbAll("((SELECT p.cfg_name, p.man_id, p.prod_id, p.firm_major, COUNT(*) as cfg_cnt, (SELECT COUNT(*) FROM predefined_node_defaults d WHERE p.cfg_name=d.cfg_name AND p.man_id=d.man_id AND p.prod_id=d.prod_id AND p.firm_major=d.firm_major) AS cnt
@@ -147,7 +147,7 @@ sub listpre {
                                  GROUP BY d.cfg_name, d.man_id, d.prod_id, d.firm_major
                                  ORDER BY d.man_id, d.prod_id, d.firm_major))");
 
-  $self->htmlHeader(title => 'MambaNet predefined configurations', page => 'service', section => 'predefined');
+  $self->htmlHeader(title => 'MambaNet predefined configurations', area => 'system', page => 'predefined');
   table;
    Tr; th colspan => 7, 'MambaNet predefined configuration'; end;
    Tr;
@@ -168,7 +168,7 @@ sub listpre {
       td $p->{cfg_cnt};
       td $p->{cnt};
       td;
-       a href => '/service/predefined?del='.uri_escape_utf8($p->{cfg_name}).";man=".$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
+       a href => '/system/predefined?del='.uri_escape_utf8($p->{cfg_name}).";man=".$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;
@@ -192,7 +192,7 @@ sub listtemp {
 
   if(!$f->{_err}) {
     $f->{del} ? ($self->dbExec('DELETE FROM templates WHERE man_id = ? AND prod_id = ? AND firm_major = ?', $f->{man}, $f->{prod}, $f->{firm})) : ();
-    $f->{del} ? (return $self->resRedirect('/service/templates', 'temp')) : ();
+    $f->{del} ? (return $self->resRedirect('/system/templates', 'temp')) : ();
   }
 
   my $pre_cfg = $self->dbAll("SELECT t.man_id, t.prod_id, t.firm_major, COUNT(*) AS cnt
@@ -200,7 +200,7 @@ sub listtemp {
                               GROUP BY t.man_id, t.prod_id, t.firm_major
                               ORDER BY t.man_id, t.prod_id, t.firm_major");
 
-  $self->htmlHeader(title => 'MambaNet templates', page => 'service', section => 'templates');
+  $self->htmlHeader(title => 'MambaNet templates', area => 'system', page => 'templates');
   table;
    Tr; th colspan => 6, 'MambaNet templates'; end;
    Tr;
@@ -217,7 +217,7 @@ sub listtemp {
       td $p->{firm_major};
       td $p->{cnt};
       td;
-       a href => '/service/templates?del=true;man='.$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
+       a href => '/system/templates?del=true;man='.$p->{man_id}.";prod=".$p->{prod_id}.";firm=".$p->{firm_major}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
        end;
       end;

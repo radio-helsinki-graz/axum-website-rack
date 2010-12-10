@@ -7,8 +7,8 @@ use YAWF ':html';
 
 
 YAWF::register(
-  qr{talkback} => \&talkback,
-  qr{ajax/talkback} => \&ajax,
+  qr{config/talkback} => \&talkback,
+  qr{ajax/config/talkback} => \&ajax,
 );
 
 
@@ -22,7 +22,7 @@ sub _col {
       $s = $l;
     }
   }
-  a href => '#', onclick => sprintf('return conf_select("talkback", %d, "source", %d, this, "matrix_sources")', $d->{number}, $v),
+  a href => '#', onclick => sprintf('return conf_select("config/talkback", %d, "source", %d, this, "matrix_sources")', $d->{number}, $v),
     !($v > 0) || !$s->{active} ? (class => 'off') : (), $s->{label};
 }
 
@@ -34,7 +34,7 @@ sub talkback {
   my $pos_lst = $self->dbAll(q|SELECT number, type, label, active FROM matrix_sources WHERE number >= 0 ORDER BY pos|);
   my $src_lst = $self->dbAll(q|SELECT number, type, label, active FROM matrix_sources WHERE number >= 0 ORDER BY number|);
 
-  $self->htmlHeader(page => 'talkback', title => 'Talkback configuration');
+  $self->htmlHeader(title => 'Talkback configuration', area => 'config', page => 'talkback');
   $self->htmlSourceList($pos_lst, 'matrix_sources');
   table;
    Tr; th colspan => 2, 'Talkback configuration'; end;

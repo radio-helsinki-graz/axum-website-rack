@@ -1,43 +1,43 @@
 
-package AXUM::Handler::Main;
+package AXUM::Handler::System;
 
 use strict;
 use warnings;
 use YAWF ':html';
-
+use Data::Dumper;
 
 YAWF::register(
-  qr{service} => \&service,
-  qr{service/functions} => \&functions,
-  qr{service/versions} => \&versions,
-  qr{service/password} => \&password,
-  qr{service/ssh} => \&ssh,
-  qr{ajax/service} => \&ajax,
-  qr{ajax/service/account} => \&set_account,
-  qr{ajax/service/user_level} => \&set_user_level,
-  qr{ajax/service/state} => \&server_state,
+  qr{system} => \&system,
+  qr{system/functions} => \&functions,
+  qr{system/versions} => \&versions,
+  qr{system/password} => \&password,
+  qr{system/ssh} => \&ssh,
+  qr{ajax/system} => \&ajax,
+  qr{ajax/system/account} => \&set_account,
+  qr{ajax/system/user_level} => \&set_user_level,
+  qr{ajax/system/state} => \&server_state,
 );
 
 my @mbn_types = ('no data', 'unsigned int', 'signed int', 'state', 'octet string', 'float', 'bit string');
 my @func_types = ('Module', 'Buss', 'Monitor buss', 'Console', 'Global', 'Source', 'Destination');
 
-sub service {
+sub system {
   my $self = shift;
   my $i=1;
 
-  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service');
+  $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system');
   table;
-   Tr; th colspan => 2, $self->OEMFullProductName().' service'; end;
-   Tr; th $i++; td; a href => '/service/mambanet', 'MambaNet node overview'; end; end;
-   Tr; th $i++; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current sources and generate new sources?", "/source/generate")', 'Generate sources'; end; end;
-   Tr; th $i++; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current destination and generate new destinations?", "/dest/generate")', 'Generate destinations'; end; end;
-   Tr; th $i++; td; a href => '/service/templates', 'Templates'; end; end;
-   Tr; th $i++; td; a href => '/service/predefined', 'Stored configurations'; end; end;
-   Tr; th $i++; td; a href => '/service/functions', 'Engine functions'; end; end;
-   Tr; th $i++; td; a href => '/service/versions?pkg='.$self->OEMShortProductName(), 'Package versions'; end; end;
+   Tr; th colspan => 2, $self->OEMFullProductName().' system configuration'; end;
+   Tr; th $i++; td; a href => '/system/mambanet', 'MambaNet node overview'; end; end;
+   Tr; th $i++; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current sources and generate new sources?", "/config/source/generate")', 'Generate sources'; end; end;
+   Tr; th $i++; td; a href => '#', onclick => 'return msg_box("Are you sure to remove all current destination and generate new destinations?", "/config/dest/generate")', 'Generate destinations'; end; end;
+   Tr; th $i++; td; a href => '/system/templates', 'Templates'; end; end;
+   Tr; th $i++; td; a href => '/system/predefined', 'Predefined node configurations'; end; end;
+   Tr; th $i++; td; a href => '/system/functions', 'Engine functions'; end; end;
+   Tr; th $i++; td; a href => '/system/versions?pkg='.$self->OEMShortProductName(), 'Package versions'; end; end;
    Tr; th $i++; td; a href => '#', onclick => "window.location = 'http://'+window.location.host+':6565'", 'Download backup'; end; end;
-   Tr; th $i++; td; a href => '/service/password', 'Change password'; end; end;
-   Tr; th $i++; td; a href => '/service/ssh', 'SSH'; end; end;
+   Tr; th $i++; td; a href => '/system/password', 'Change web accounts'; end; end;
+   Tr; th $i++; td; a href => '/system/ssh', 'SSH'; end; end;
   end;
   $self->htmlFooter;
 }
@@ -47,22 +47,22 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'pos') {
-    a href => '#', onclick => sprintf('return conf_select("service", "%d|%d|%d|%d", "%s", "%s", this, "func_list", "Place before ", "Move")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, "$d->{pos}"), $v;
+    a href => '#', onclick => sprintf('return conf_select("system", "%d|%d|%d|%d", "%s", "%s", this, "func_list", "Place before ", "Move")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, "$d->{pos}"), $v;
   }
   if ($n eq 'label') {
-    a href => '#', onclick => sprintf('return conf_text("service", "%d|%d|%d|%d", "%s", "%s", this, "Label", "Save")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v), $v;
+    a href => '#', onclick => sprintf('return conf_text("system", "%d|%d|%d|%d", "%s", "%s", this, "Label", "Save")', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v), $v;
   }
   if ($n =~ /^user_level[0-5]/) {
     if ($d->{rcv_type} != 0) {
-      a href => '#', onclick => sprintf('return conf_set("service", "%d|%d|%d|%d", "%s", "%s", this)', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
+      a href => '#', onclick => sprintf('return conf_set("system", "%d|%d|%d|%d", "%s", "%s", this)', $d->{rcv_type}, $d->{xmt_type}, $d->{type}, $d->{func}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
     }
   }
   if ($n =~ /^all_user_level([0-5])/) {
     my @user_level_names  = ('Idle', 'Unkown', 'Operator 1', 'Operator 2', 'Supervisor 1', 'Supervisor 2');
 
-    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("service", "all", "user_level%d", "%s", this)}', $user_level_names[$1], $1, 1), 'y';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("system", "all", "user_level%d", "%s", this)}', $user_level_names[$1], $1, 1), 'y';
     txt ' / ';
-    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("service", "all", "user_level%d", "%s", this)}', $user_level_names[$1], $1, 0), 'n';
+    a href => '#', onclick => sprintf('if (confirm("Override all \'%s\' settings?")) {return conf_set("system", "all", "user_level%d", "%s", this)}', $user_level_names[$1], $1, 0), 'n';
   }
 }
 
@@ -71,7 +71,7 @@ sub functions {
 
   my $src = $self->dbAll(q|SELECT pos, (func).type AS type, (func).func AS func, name, rcv_type, xmt_type, label, user_level0, user_level1, user_level2, user_level3, user_level4, user_level5 FROM functions ORDER BY pos|);
 
-  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'functions');
+  $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system', page => 'functions');
 
   # create list of functions for javascript
   div id => 'func_list', class => 'hidden';
@@ -192,7 +192,7 @@ sub versions {
     { name => 'pkg', template => 'asciiprint' },
   );
 
-  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'versions');
+  $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system', page => 'versions');
 
   my $n = 0;
   my @pkgs;
@@ -230,8 +230,12 @@ sub _password_col {
   my($n, $d) = @_;
   my $v = $d->{$n};
 
-  if (($n eq 'user') or ($n eq 'password')) {
-    a href => '#', onclick => sprintf('return conf_text("service/account", %d, "%s", "%s", this, "User", "Save")', $d->{line}, $n, $d->{$n}), $d->{$n};
+  if ($n =~ /(config|system)_(user|password)/) {
+    if ($2 eq 'user') {
+      a href => '#', onclick => sprintf('return conf_text("system/account", %d, "%s", "%s", this, "User", "Save")', $d->{line}, $n, $d->{$n}), $d->{$n} ? ($d->{$n}) : (class => 'off', 'None');
+    } else {
+      a href => '#', onclick => sprintf('return conf_pass("system/account", %d, "%s", "%s", this, "User", "Save")', $d->{line}, $n, $d->{$n}), '****';
+    }
   }
 }
 
@@ -246,21 +250,32 @@ sub password {
 
   my $user = "";
   my $pass = "";
-  open(FILE, '/etc/lighttpd/.lighttpdpassword');
+  open(FILE, '/etc/lighttpd/.lighttpdpassword_config');
   my @array = <FILE>;
-
   $array[$line] =~ m/(.*):(.*)/;
-
-  my $account = { line => $line, user => $1, password => $2 };
-
+  my $config_account = { line => $line, config_user => $1, config_password => $2 };
   close FILE;
 
-  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'password');
+  open(FILE, '/etc/lighttpd/.lighttpdpassword_system');
+  my @array = <FILE>;
+  $array[$line] =~ m/(.*):(.*)/;
+  my $system_account = { line => $line, system_user => $1, system_password => $2 };
+  close FILE;
+
+  $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system', page => 'password');
   table;
+   Tr; th colspan => 2, 'Console 1-4 configuration account'; end;
    Tr; th 'User'; th 'Password'; end;
    Tr;
-    td; _password_col 'user', $account; end;
-    td; _password_col 'password', $account; end;
+    td; _password_col 'config_user', $config_account; end;
+    td; _password_col 'config_password', $config_account; end;
+   end;
+   Tr class => 'empty'; th colspan => 2; end; end;
+   Tr; th colspan => 2, 'System configuration account'; end;
+   Tr; th 'User'; th 'Password'; end;
+   Tr;
+    td; _password_col 'system_user', $system_account; end;
+    td; _password_col 'system_password', $system_account; end;
    end;
   end;
   $self->htmlFooter;
@@ -272,37 +287,44 @@ sub set_account {
   my $f = $self->formValidate(
     { name => 'item', required => 1, template => 'int' },
     { name => 'field', required => 1, template => 'asciiprint' },
-    { name => 'user', required => 0, template => 'asciiprint' },
-    { name => 'password', required => 0, template => 'asciiprint' },
+    { name => 'config_user', required => 0, template => 'asciiprint' },
+    { name => 'config_password', required => 0, template => 'asciiprint' },
+    { name => 'system_user', required => 0, template => 'asciiprint' },
+    { name => 'system_password', required => 0, template => 'asciiprint' },
   );
   return 404 if $f->{_err};
 
-  my @array;
-  open(FILE, '/etc/lighttpd/.lighttpdpassword');
-  @array = <FILE>;
+  if ($f->{field} =~ /(config|system)_(user|password)/) {
+    my $filename = "/etc/lighttpd/.lighttpdpassword_$1";
+    my $type = $2;
+    my @array;
 
-  if (defined $f->{user}) {
-    $array[$f->{item}] =~ s/^(.*):(.*)/$f->{user}:$2/;
+    open(FILE, $filename);
+    @array = <FILE>;
+
+    if ($type eq 'user') {
+      $array[$f->{item}] =~ s/^(.*):(.*)/$f->{$f->{field}}:$2/;
+    }
+    if ($type eq 'password') {
+      $array[$f->{item}] =~ s/^(.*):(.*)/$1:$f->{$f->{field}}/;
+    }
+
+    my @result = grep(/[^\s]/,@array);
+    close FILE;
+
+    open(FILE, ">$filename");
+    print FILE @result;
+    close FILE;
+
+    $array[$f->{item}] =~ m/(.*):(.*)/;
+    _password_col $f->{field}, { line => $f->{item}, $f->{field} => $f->{$f->{field}}};
   }
-  if (defined $f->{password}) {
-    $array[$f->{item}] =~ s/^(.*):(.*)/$1:$f->{password}/;
-  }
-
-  my @result = grep(/[^\s]/,@array);
-  close FILE;
-
-  open(FILE, '>/etc/lighttpd/.lighttpdpassword');
-  print FILE @result;
-  close FILE;
-
-  $array[$f->{item}] =~ m/(.*):(.*)/;
-  _password_col $f->{field}, { line => $f->{item}, user => $1, password => $2};
 }
 
 sub ssh {
   my $self = shift;
 
-  $self->htmlHeader(title => $self->OEMFullProductName().' service pages', page => 'service', section => 'ssh');
+  $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system', page => 'ssh');
 
   table;
    Tr; th colspan => 4, $self->OEMFullProductName().' server'; end;
@@ -323,9 +345,9 @@ sub ssh {
       for my $i (0..$#array) {
         if ($array[$i] =~ /^ALL: (.*)/) {
           if ($1 =~ /EXCEPT sshd/) {
-            a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 1, this)'), 'disabled';
+            a href => '#', onclick => sprintf('return conf_set("system/state", "ssh", "state", 1, this)'), 'disabled';
           } else {
-            a href => '#', onclick => sprintf('if (confirm("Are you sure to disabled SSH?\n(WARNING: remote support will be not possible!)")) { return conf_set("service/state", "ssh", "state", 0, this) }'), 'enabled';
+            a href => '#', onclick => sprintf('if (confirm("Are you sure to disabled SSH?\n(WARNING: remote support will be not possible!)")) { return conf_set("system/state", "ssh", "state", 0, this) }'), 'enabled';
           }
         }
       }
@@ -352,10 +374,10 @@ sub server_state {
     if ($array[$i] =~ /^ALL: (.*)/) {
       if ($f->{$f->{field}}) {
         $array[$i] =~ s/^ALL: (.*)/ALL: ALL/;
-        a href => '#', onclick => sprintf('if (confirm("Are you sure to disabled SSH?\n(WARNING: remote support will be not possible!)")) { return conf_set("service/state", "ssh", "state", 0, this) }'), 'enabled';
+        a href => '#', onclick => sprintf('if (confirm("Are you sure to disabled SSH?\n(WARNING: remote support will be not possible!)")) { return conf_set("system/state", "ssh", "state", 0, this) }'), 'enabled';
       } else {
         $array[$i] =~ s/^ALL: (.*)/ALL: EXCEPT sshd/;
-        a href => '#', onclick => sprintf('return conf_set("service/state", "ssh", "state", 1, this)'), 'disabled';
+        a href => '#', onclick => sprintf('return conf_set("system/state", "ssh", "state", 1, this)'), 'disabled';
       }
     }
   }
