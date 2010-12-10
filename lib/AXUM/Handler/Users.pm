@@ -24,6 +24,9 @@ sub _col {
   if($n eq 'pos') {
     a href => '#', onclick => sprintf('return conf_select("config/users", %d, "%s", "%s", this, "user_pos_list", "Place before ", "Move")', $d->{number}, $n, "$d->{pos}"), $d->{pos};
   }
+  if ($n eq 'active') {
+    a href => '#', onclick => sprintf('return conf_set("config/users", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1), $v ? 'y' : (class => 'off', 'n');
+  }
   if($n eq 'username') {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $jsval =~ s/"/\\"/g;
@@ -142,7 +145,7 @@ sub user_overview {
     $self->dbExec("SELECT users_renumber()");
     return $self->resRedirect('/config/users', 'temp');
   }
-  my $users = $self->dbAll(q|SELECT pos, number, username, password, logout_to_idle,
+  my $users = $self->dbAll(q|SELECT pos, number, active, username, password, logout_to_idle,
                                     console1_user_level, console2_user_level, console3_user_level, console4_user_level,
                                     console1_preset, console2_preset, console3_preset, console4_preset,
                                     console1_preset_load, console2_preset_load, console3_preset_load, console4_preset_load,
@@ -198,14 +201,14 @@ sub user_overview {
    end;
   end;
   table;
-   Tr; th colspan => 25, 'Users'; end;
+   Tr; th colspan => 26, 'Users'; end;
    Tr;
-    th colspan => 4, '';
+    th colspan => 5, '';
     th colspan => 5, "Console $_" for (1..4);
     th '';
    end;
    Tr;
-    td colspan => 4, '';
+    td colspan => 5, '';
     for (1..4) {
       td colspan => 5;
         _col "console${_}_login";
@@ -215,7 +218,7 @@ sub user_overview {
     td '';
    end;
    Tr;
-    td colspan => 4, 'Active account';
+    td colspan => 5, 'Active account';
     for (1..4) {
       td colspan => 5;
         _col 'active_username', @$c[$_-1];
@@ -224,7 +227,7 @@ sub user_overview {
     td '';
    end;
    Tr;
-    td colspan => 4, 'Chipcard account';
+    td colspan => 5, 'Chipcard account';
     for (1..4) {
       td colspan => 5;
         _col 'chipcard_username', @$c[$_-1];
@@ -234,6 +237,7 @@ sub user_overview {
    end;
    Tr;
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Active';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Username';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Password';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Logout to idle';
@@ -260,8 +264,9 @@ sub user_overview {
    end;
 
    for my $u (@$users) {
-     Tr;
+     Tr $u->{active} ? () : (class => 'inactive');
       th; _col 'pos', $u; end;
+      td; _col 'active', $u; end;
       td; _col 'username', $u; end;
       td; _col 'password', $u; end;
       td; _col 'logout_to_idle', $u; end;
@@ -296,6 +301,7 @@ sub ajax {
     { name => 'username', required => 0, maxlength => 32, minlength => 1 },
     { name => 'password', required => 0, maxlength => 32, minlength => 1 },
     { name => 'pos', required => 0, template => 'int' },
+    { name => 'active', required => 0, enum => [ 0, 1 ] },
     { name => 'logout_to_idle', required => 0, enum => [ 0, 1 ] },
     map +(
       { name => "console${_}_user_level", required => 0, enum => [ 0..6 ] },
@@ -322,7 +328,7 @@ sub ajax {
   } else {
     my %set;
     defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_}))
-      for(qw|username password logout_to_idle|,
+      for(qw|username password logout_to_idle active|,
              (map("console${_}_user_level", 1..4)),
              (map("console${_}_preset", 1..4)),
              (map("console${_}_preset_load", 1..4)),
