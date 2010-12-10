@@ -126,7 +126,7 @@ function conf_set_remove(page, item, field, value, obj, remove) {
     if (remove) {
       remove_input(input_obj);
     }
-    if (page == 'users/write') {
+    if (page == 'config/users/write') {
       ajax_timed_write(obj, h.responseText);
     } else {
       obj.innerHTML = h.responseText;
