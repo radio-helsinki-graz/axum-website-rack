@@ -55,7 +55,7 @@ sub _col {
     $v = 0 if not defined $v;
 
     for my $l (@$lst) {
-      if ($l->{number} == $v)
+      if ($l->{pos} == $v)
       {
         $s = $l;
       }
@@ -199,7 +199,7 @@ sub user_overview {
    Select;
     option value => 'NULL', 'None';
     for (@$console_presets) {
-      option value => "$_->{number}", $_->{label};
+      option value => "$_->{pos}", $_->{label};
     }
    end;
   end;
