@@ -162,7 +162,7 @@ sub user_overview {
    Select;
     $max_pos = 0;
     for (@$users) {
-      option value => "$_->{pos}", $_->{username};
+      option value => "$_->{number}", $_->{username};
       $max_pos = $_->{pos} if ($_->{pos} > $max_pos);
     }
    end;
