@@ -75,7 +75,17 @@ sub _col {
     ($v == 2) ? (class => 'off') : (), $pool_levels[$v];
   }
   if ($n =~ /active_username/) {
-    txt $v;
+    if ($v ne '')
+    {
+      table width => '100%';
+       Tr;
+        td style => 'border: 0px', width => '100%'; txt $v; end;
+        td style => 'border: 0px', aligh => 'right';
+         input type => 'button', onclick => sprintf('return conf_set("config/users/login", %d, "logout", "1", this)', $d->{number}), value => 'Logout';
+        end;
+       end;
+      end;
+    }
   }
   if ($n =~ /chipcard_username/) {
     if ($d->{chipcard_username} ne '') {
@@ -347,6 +357,7 @@ sub ajax_login {
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
+    { name => 'logout', enum => [ 1 ] },
     map +(
       { name => "console${_}_login", required => 0, template => 'int' },
     ), 1..4
@@ -357,6 +368,11 @@ sub ajax_login {
     $self->dbExec('INSERT INTO recent_changes (change, arguments) VALUES(\'login\', ?||\' \'||?)', $1, $f->{$f->{field}});
     _col $f->{field};
     _col "console$1_write";
+  }
+  if ($f->{field} eq 'logout')
+  {
+    $self->dbExec('INSERT INTO recent_changes (change, arguments) VALUES(\'login\', ?||\' \'||0)', $f->{item});
+    txt 'Done';
   }
 }
 
