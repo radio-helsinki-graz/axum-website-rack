@@ -357,7 +357,7 @@ sub ajax_login {
   my $f = $self->formValidate(
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
-    { name => 'logout', enum => [ 1 ] },
+    { name => 'logout', required => 0, enum => [ 1 ] },
     map +(
       { name => "console${_}_login", required => 0, template => 'int' },
     ), 1..4
