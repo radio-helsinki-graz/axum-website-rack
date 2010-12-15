@@ -15,6 +15,7 @@ YAWF::register(
   qr{ajax/config/set_tz} => \&set_tz,
   qr{ajax/config/ip} => \&set_ip,
   qr{ajax/config/ntp} => \&set_ntp,
+  qr{ajax/config/itf} => \&set_itf,
 );
 
 
@@ -41,6 +42,17 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "auto_momentary", %d, this)', $v?0:1),
       $v ? 'Yes' : 'No';
   }
+  if (($n eq 'name') or
+      ($n eq 'location') or
+      ($n eq 'contact')) {
+    $v = '' if not defined $v;
+    a href => '#', onclick => sprintf('return conf_text("config/globalconf", %d, "%s", "%s", this)', $d->{number}, $n, $v), ($v ne '') ? ($v) : (class => 'off', 'None');
+  }
+}
+
+sub _col_ip {
+  my ($n, $v) = @_;
+
   if ($n =~ /net_(ip|mask|gw|dns)/) {
     a href => '#', onclick => sprintf('return conf_text("config/ip", 0, "%s", "%s", this)', $n, $v), $v;
   }
@@ -59,13 +71,11 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "startup_state", %d, this)', $v?0:1),
       $v ? 'Backup of last situation' : 'Programmed defaults';
   }
-
-  # next all global columns
-  if (($n eq 'name') or
-      ($n eq 'location') or
-      ($n eq 'contact')) {
-    $v = '' if not defined $v;
-    a href => '#', onclick => sprintf('return conf_text("config/globalconf", %d, "%s", "%s", this)', $d->{number}, $n, $v), ($v ne '') ? ($v) : (class => 'off', 'None');
+  if (($n eq 'udp_port') or ($n eq 'tcp_port')) {
+    a href => '#', onclick => sprintf('return conf_text("config/itf", 0, "%s", "%s", this)', $n, $v), $v;
+  }
+  if (($n eq 'UDP') or ($n eq 'TCP')) {
+    a href => '#', onclick => sprintf('return conf_set("config/itf", 0, "%s", "%s", this)', $n, $v->{$n}?0:1), $v->{$n} ? ('y') : ('n');
   }
 }
 
@@ -194,20 +204,80 @@ sub ipclock
       $sync_st = $2;
     }
   }
+
+  open(FILE, '/etc/conf.d/axum-rack.conf');
+  @array = <FILE>;
+  my $eth = "-";
+  my $udp = "-";
+  my $tcp = "-";
+  my $server_active;
+
+  for my $i (0..$#array) {
+    $server_active->{ETH} = 1 if $array[$i] =~ /USEETH=1/;
+    $server_active->{UDP} = 1 if $array[$i] =~ /USEUDP=1/;
+    $server_active->{TCP} = 1 if $array[$i] =~ /USETCP=1/;
+
+    if ($array[$i] =~ /^ETHARG="-e (eth\d+)"/) {
+      $eth = $1;
+    }
+    if ($array[$i] =~ /^UDPARG="-s ([0-9]{2,5})?"/) {
+      $udp  = "$1";
+      if (not defined $1) {
+        $udp = "34848";
+      }
+    }
+    if ($array[$i] =~ /^TCPARG="-t ([0-9]{2,5})?"/) {
+      $tcp  = "$1";
+      if (not defined $1) {
+        $tcp = "34848";
+      }
+    }
+  }
+  close FILE;
+
+  my $mac = "-";
+  if (`/sbin/ifconfig -a | grep $eth` =~ /HWaddr (.*)/) {
+    $mac = $1;
+  }
+
   $self->htmlHeader(title => "IP/Clock configuration", area => 'config', page => 'ipclock');
 
   table;
-  Tr; th colspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "IP\n"; i "(effective after reboot)"; end; end;
-  Tr; th "Address"; td; _col 'net_ip', $ip; end; end;
-  Tr; th "Subnet mask:"; td; _col 'net_mask', $mask; end; end;
-  Tr; th "Gateway"; td; _col 'net_gw', $gw; end; end;
-  Tr; th "DNS server"; td; _col 'net_dns', $dns; end; end;
-  Tr class => 'empty'; th colspan => 2; end; end;
+   Tr; th colspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "IP\n"; i "(effective after reboot)"; end; end;
+   Tr; th "Address"; td; _col_ip 'net_ip', $ip; end; end;
+   Tr; th "Subnet mask:"; td; _col_ip 'net_mask', $mask; end; end;
+   Tr; th "Gateway"; td; _col_ip 'net_gw', $gw; end; end;
+   Tr; th "DNS server"; td; _col_ip 'net_dns', $dns; end; end;
+  end;
+  br;
+  table;
+   Tr; th colspan => 3, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "Engine MambaNet servers\n"; i "(effective after reboot)"; end; end;
+   Tr; th ''; th 'Enable'; th 'Address'; end;
+   Tr;
+    th 'Ethernet';
+    td; txt $server_active->{'ETH'} ? ('y') : ('n'); end;
+    td "$eth - $mac";
+   end;
+   Tr;
+    th 'UDP/IP';
+    td; _col_ip 'UDP', $server_active; end;
+    td; _col_ip 'udp_port', $udp; end;
+    td style => 'text-align: left; background-color: transparent', class => 'empty'; i 'default port is 34848'; end;
+   end;
+   Tr;
+    th 'TCP/IP';
+    td; _col_ip 'TCP', $server_active; end;
+    td; _col_ip 'tcp_port', $tcp; end;
+    td style => 'text-align: left; background-color: transparent', class => 'empty'; i 'default port is 34848'; end;
+   end;
+  end;
+  br;
+  table;
   Tr; th colspan => 3, style => 'height: 40px; background: url("/images/table_head_40.png")'; txt "Clock\n"; i "(effective after reboot)"; end; end;
   Tr; th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Current"; td colspan => 2, `date`;
   Tr; td $sync_url; td "stratum: $sync_st"; end;
-  Tr; th "time zone"; td colspan => 2; _col 'timezone', $tz; end;
-  Tr; th style => 'height: 100px; background: url("/images/table_head_100.png")', "NTP Servers"; td colspan => 2; _col 'ntp_server', $ntp_server; end;
+  Tr; th "time zone"; td colspan => 2; _col_ip 'timezone', $tz; end;
+  Tr; th style => 'height: 100px; background: url("/images/table_head_100.png")', "NTP Servers"; td colspan => 2; _col_ip 'ntp_server', $ntp_server; end;
   Tr;
    th style => 'height: 40px; background: url("/images/table_head_40.png")', "Set date/time";
    td colspan => 2;
@@ -393,7 +463,7 @@ sub set_tz {
   print FILE @result;
   close FILE;
 
-  _col 'timezone', $f->{tz};
+  _col_ip 'timezone', $f->{tz};
 }
 
 sub set_ip {
@@ -423,7 +493,7 @@ sub set_ip {
   print FILE @result;
   close FILE;
 
-  _col $f->{field}, $f->{$f->{field}};
+  _col_ip $f->{field}, $f->{$f->{field}};
 }
 
 sub set_ntp {
@@ -447,7 +517,7 @@ sub set_ntp {
   print FILE @result;
   close FILE;
 
-  _col 'ntp_server', $f->{ntp_server};
+  _col_ip 'ntp_server', $f->{ntp_server};
 }
 
 sub setdatetime {
@@ -462,6 +532,41 @@ sub setdatetime {
   $self->dbExec("UPDATE global_config SET date_time = ?", "$f->{date} $f->{time}");
 
   $self->resRedirect('/config/ipclock');
+}
+
+sub set_itf {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'field', required => '1', template => 'asciiprint' },
+    { name => 'udp_port', required => '0', regex => [ qr/([0-9]{2,5})/ ] },
+    { name => 'tcp_port', required => '0', regex => [ qr/([0-9]{2,5})/ ] },
+    { name => 'UDP', required => '0', enum => [ 0, 1 ] },
+    { name => 'TCP', required => '0', enum => [ 0, 1 ] },
+  );
+  return 404 if $f->{_err};
+
+  my @array;
+  open(FILE, '/etc/conf.d/axum-rack.conf');
+  @array = <FILE>;
+  for my $i (0..$#array) {
+    $array[$i] =~ s/^UDPARG="-s (.*)"/UDPARG="-s $f->{udp_port}"/ if defined $f->{udp_port};
+    $array[$i] =~ s/^TCPARG="-t (.*)"/TCPARG="-t $f->{tcp_port}"/ if defined $f->{tcp_port};
+    $array[$i] =~ s/^USEUDP=(.*)/USEUDP=$f->{UDP}/ if defined $f->{UDP};
+    $array[$i] =~ s/^USETCP=(.*)/USETCP=$f->{TCP}/ if defined $f->{TCP};
+  }
+  my @result = grep(/[^\s]/,@array);
+  close FILE;
+
+  open(FILE, '>/etc/conf.d/axum-rack.conf');
+  print FILE @result;
+  close FILE;
+
+  if ($f->{field} =~ /[A-Z]{3}/) {
+    _col_ip $f->{field}, { $f->{field} => $f->{$f->{field}} };
+  } else {
+    _col_ip $f->{field}, $f->{$f->{field}};
+  }
 }
 
 
