@@ -4,7 +4,7 @@ package AXUM::Handler::Main;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
+
 
 YAWF::register(
   qr{} => \&home,

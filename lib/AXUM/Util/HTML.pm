@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use YAWF ':html';
 use Exporter 'import';
-use Data::Dumper;
+
 
 our @EXPORT = qw| htmlHeader htmlFooter htmlSourceList OEMFullProductName OEMShortProductName |;
 

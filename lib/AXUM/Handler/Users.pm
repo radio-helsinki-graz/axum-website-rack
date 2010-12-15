@@ -4,7 +4,7 @@ package AXUM::Handler::User;
 use strict;
 use warnings;
 use YAWF ':html';
-use Data::Dumper;
+
 
 YAWF::register(
   qr{config/users}        => \&user_overview,
