@@ -48,6 +48,10 @@ sub _col {
     $v = '' if not defined $v;
     a href => '#', onclick => sprintf('return conf_text("config/globalconf", %d, "%s", "%s", this)', $d->{number}, $n, $v), ($v ne '') ? ($v) : (class => 'off', 'None');
   }
+  if ($n eq 'startup_state') {
+    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "startup_state", %d, this)', $v?0:1),
+      $v ? 'Backup of last situation' : 'Programmed defaults';
+  }
 }
 
 sub _col_ip {
