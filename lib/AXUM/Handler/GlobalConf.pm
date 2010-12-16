@@ -71,10 +71,6 @@ sub _col_ip {
   if ($n eq 'timezone') {
     a href => '#', onclick => sprintf('return conf_tz(this)'), $v ? ($v) : ('Select timezone');
   }
-  if ($n eq 'startup_state') {
-    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "startup_state", %d, this)', $v?0:1),
-      $v ? 'Backup of last situation' : 'Programmed defaults';
-  }
   if (($n eq 'udp_port') or ($n eq 'tcp_port')) {
     a href => '#', onclick => sprintf('return conf_text("config/itf", 0, "%s", "%s", this)', $n, $v), $v;
   }
