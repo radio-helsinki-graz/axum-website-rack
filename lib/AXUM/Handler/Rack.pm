@@ -602,7 +602,7 @@ sub ajax {
   } elsif ($f->{field} eq 'user_level_from_console') {
     $self->dbExec("UPDATE addresses SET user_level_from_console = ? WHERE addr = ?", $f->{$f->{field}}, oct "0x$f->{item}");
     #used rack in the link, because surface/rack make no differenct for the user_level_from_console ajax communication
-    a href => '#', onclick => sprintf('return conf_select("/config/surface", "%08X", "%s", "%s", this, "console_list")', oct "0x$f->{item}", 'user_level_from_console', $f->{user_level_from_console}), $user_level_from_names[$f->{user_level_from_console}];
+    a href => '#', onclick => sprintf('return conf_select("config/surface", "%08X", "%s", "%s", this, "console_list")', oct "0x$f->{item}", 'user_level_from_console', $f->{user_level_from_console}), $user_level_from_names[$f->{user_level_from_console}];
   }
 }
 
