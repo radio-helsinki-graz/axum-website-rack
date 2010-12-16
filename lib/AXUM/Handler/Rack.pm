@@ -259,7 +259,10 @@ sub conf {
       JOIN addresses a ON (t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major)
       LEFT JOIN defaults d ON (d.addr = a.addr AND t.number = d.object AND t.firm_major = d.firm_major)
       LEFT JOIN node_config c ON (c.addr = a.addr AND t.number = c.object AND t.firm_major = c.firm_major)
-      LEFT JOIN functions f ON ((c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type))
+      LEFT JOIN functions f ON (
+        (c.func).type = (f.func).type AND (c.func).func = (f.func).func AND (t.sensor_type = f.rcv_type OR t.actuator_type = f.xmt_type)
+        AND f.pos = (SELECT f1.pos FROM functions f1 WHERE (c.func).type = (f1.func).type AND (c.func).func = (f1.func).func AND (t.sensor_type = f1.rcv_type OR t.actuator_type = f1.xmt_type) ORDER BY f1.pos LIMIT 1)
+      )
       WHERE a.addr = ? ORDER BY t.number',
     oct "0x$addr"
   );
