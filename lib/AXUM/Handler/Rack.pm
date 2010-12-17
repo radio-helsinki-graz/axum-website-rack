@@ -674,6 +674,11 @@ sub setpre {
                                                        WHEN ((p.func).seq+$f->{offset})>19 THEN 19
                                                        ELSE ((p.func).seq+$f->{offset})
                                                        END)
+                   WHEN (p.func).type = 3 THEN (SELECT CASE
+                                                       WHEN ((p.func).seq+$f->{offset})<0 THEN 0
+                                                       WHEN ((p.func).seq+$f->{offset})>3 THEN 3
+                                                       ELSE ((p.func).seq+$f->{offset})
+                                                       END)
                    WHEN (p.func).type = 5 THEN (SELECT CASE
                                                        WHEN EXISTS (SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset}) THEN
                                                          (SELECT number FROM src_config WHERE pos = ((func).seq)+$f->{offset})-1
