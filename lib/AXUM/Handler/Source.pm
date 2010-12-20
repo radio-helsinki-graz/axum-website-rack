@@ -77,6 +77,23 @@ sub _col {
   if ($n eq 'stop_trigger') {
     a href => '#', onclick => sprintf('return conf_select("config/source", %d, "%s", %d, this, "stop_triggers")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $stop_trigger_types[$v];
   }
+  if ($n eq 'related_dest') {
+    if ((defined $v) && ($v == -1)) {
+      txt "N-1 ($d->{related_label})";
+    } else {
+       my $s;
+
+       $v = 0 if not defined $v;
+       for my $l (@$lst) {
+        if ($l->{number} == $v)
+        {
+          $s = $l;
+        }
+      }
+
+      a href => '#', onclick => sprintf('return conf_select("config/source", %d, "%s", %d, this, "dest_list")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off', 'None') : ($s->{label});
+    }
+  }
 }
 
 sub _create_source {
@@ -125,11 +142,22 @@ sub source {
   my $mb = $self->dbAll('SELECT number, label, number <= dsp_count()*4 AS active
     FROM monitor_buss_config ORDER BY number');
 
+  my $pos_lst = $self->dbAll('SELECT number, label FROM dest_config WHERE number >= 0 ORDER BY pos');
+  my $dest_lst = $self->dbAll('SELECT number, label FROM dest_config WHERE number >= 0 ORDER BY number');
+
   my @cols = ((map "redlight$_", 1..8), (map "monitormute$_", 1..16));
   my $src = $self->dbAll(q|SELECT pos, number, label, input1_addr, input1_sub_ch, input2_addr,
     input2_sub_ch, input_phantom, input_pad, input_gain,
     default_src_preset, start_trigger, stop_trigger,
-    !s FROM src_config ORDER BY pos|, join ', ', @cols);
+    CASE
+      WHEN ((SELECT COUNT(*) FROM dest_config d WHERE d.mix_minus_source = s.number+288) <> 0) THEN -1
+      ELSE related_dest
+    END,
+    CASE
+      WHEN ((SELECT COUNT(*) FROM dest_config d WHERE d.mix_minus_source = s.number+288) <> 0) THEN (SELECT d.label FROM dest_config d WHERE d.mix_minus_source = s.number+288 LIMIT 1)
+      ELSE ''
+    END AS related_label,
+    !s FROM src_config s ORDER BY pos|, join ', ', @cols);
 
   my $src_preset_lst = $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|);
 
@@ -176,9 +204,17 @@ sub source {
     option value => $_, $stop_trigger_types[$_] for (0..3);
    end;
   end;
+  div id => 'dest_list', class => 'hidden';
+   Select;
+     option value => 0, 'None';
+     for (@$dest_lst) {
+       option value => "$_->{number}", $_->{label};
+     }
+   end;
+  end;
 
   table;
-   Tr; th colspan => 34, 'Source configuration'; end;
+   Tr; th colspan => 36, 'Source configuration'; end;
    Tr;
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Nr';
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', 'Label';
@@ -187,6 +223,7 @@ sub source {
     th colspan => 2, 'Trigger';
     th colspan => 8, 'Redlight';
     th colspan => 16, 'Monitor destination mute/dim';
+    th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', "Related\ndestination";
     th rowspan => 2, style => 'height: 40px; background: url("/images/table_head_40.png")', '';
    end;
    Tr;
@@ -241,6 +278,7 @@ sub source {
       for (@$mb) {
         td $_->{active} ? (class => "exp_monitormute$_->{number}") : (class => "exp_monitormute$_->{number} inactive"); _col "monitormute$_->{number}", $s; end;
       }
+      td; _col 'related_dest', $s, $dest_lst; end;
       td;
        a href => '/config/source?del='.$s->{number}, title => 'Delete';
         img src => '/images/delete.png', alt => 'delete';
@@ -301,6 +339,7 @@ sub ajax {
     (map +{ name => "redlight$_", required => 0, enum => [0,1] }, 1..8),
     (map +{ name => "monitormute$_", required => 0, enum => [0,1] }, 1..16),
     { name => 'pos', required => 0, template => 'int' },
+    { name => 'related_dest', required => 0, template => 'int' },
   );
   return 404 if $f->{_err};
 
@@ -318,8 +357,8 @@ sub ajax {
     txt 'Wait for reload';
   } else {
     my %set;
-    defined $f->{$_} and ((($_ =~ /default_src_preset/) and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
-      for(qw|label input_phantom input_pad input_gain default_src_preset start_trigger stop_trigger|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
+    defined $f->{$_} and (((($_ =~ /default_src_preset/) or ($_ =~ /related_dest/))and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
+      for(qw|label input_phantom input_pad input_gain default_src_preset start_trigger stop_trigger related_dest|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
     defined $f->{$_} and $f->{$_} =~ /([0-9]+)_([0-9]+)/ and ($set{$_.'_addr = '.(($1 == 0)?('NULL'):('?')).', '.$_.'_sub_ch = ?'} = [ ($1 == 0)?():($1), $2 ])
       for('input1', 'input2');
 
@@ -330,9 +369,14 @@ sub ajax {
     } elsif ($f->{field} =~ /source/) {
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
         $f->{field} =~ /source/ ? $self->dbAll(q|SELECT number, label, active FROM matrix_sources ORDER BY number|) : ();
-    } else {
+    } elsif ($f->{field} =~ /default_src_preset/) {
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
         $f->{field} =~ /default_src_preset/ ? $self->dbAll(q|SELECT number, label FROM src_preset ORDER BY pos|) : ();
+    } elsif ($f->{field} =~ /related_dest/) {
+      _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
+        $f->{field} =~ /related_dest/ ? $self->dbAll(q|SELECT number, label FROM dest_config ORDER BY pos|) : ();
+    } else {
+      _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
     }
   }
 }
