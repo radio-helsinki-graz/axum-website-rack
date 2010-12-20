@@ -12,6 +12,7 @@ YAWF::register(
 );
 
 my @buss_names = map sprintf('buss_%d_%d', $_*2-1, $_*2), 1..16;
+my @exclusive_types = ('no', 'Dump', 'Communication');
 
 # display the value of a column
 # arguments: column name, database return object
@@ -24,7 +25,6 @@ sub _col {
     mono         => [0, 'yes', 'no'  ],
     global_reset => [0, 'yes', 'no'  ],
     interlock    => [0, 'yes', 'no'  ],
-    exclusive    => [0, 'yes', 'no'  ],
     on_off       => [1, 'On',  'Off' ],
     pre_on       => [0, 'Pre', 'Post'],
     pre_balance  => [0, 'Pre', 'Post'],
@@ -55,6 +55,9 @@ sub _col {
   if($n eq 'console') {
     a href => '#', onclick => sprintf('return conf_select("config/buss", %d, "%s", %d, this, "console_list")', $d->{number}, $n, $v),
       $v;
+  }
+  if ($n eq 'exclusive') {
+    a href => '#', onclick => sprintf('return conf_select("config/buss", %d, "%s", %d, this, "exclusive_list")', $d->{number}, $n, $v), ($v == 0) ? (class => 'off') : (), $exclusive_types[$v];
   }
 }
 
@@ -96,6 +99,11 @@ sub buss {
   div id => 'console_list', class => 'hidden';
     Select;
       option value => $_, 'Console '.($_) for (1..4);
+    end;
+  end;
+  div id => 'exclusive_list', class => 'hidden';
+    Select;
+      option value => $_, $exclusive_types[$_] for (0..2);
     end;
   end;
   table;
@@ -141,7 +149,7 @@ sub ajax {
     { name => 'mono',         required => 0, enum => [0,1] },
     { name => 'global_reset', required => 0, enum => [0,1] },
     { name => 'interlock',    required => 0, enum => [0,1] },
-    { name => 'exclusive',    required => 0, enum => [0,1] },
+    { name => 'exclusive',    required => 0, enum => [0,1,2] },
     { name => 'on_off',       required => 0, enum => [0,1] },
     { name => 'pre_on',       required => 0, enum => [0,1] },
     { name => 'pre_level',    required => 0, enum => [0,1] },
