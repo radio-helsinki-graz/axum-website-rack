@@ -16,7 +16,7 @@ sub _col {
   my $v = $d->{$n};
 
   if($n eq 'program_end_time') {
-    a href => '#', onclick => sprintf('return conf_text("home", %d, "%s", "%s", this)', $d->{number}, $n, $v), $v;
+    a href => '#', onclick => sprintf('return conf_text("home", %d, "%s", "%s", this)', $d->{number}, $n, $v), $d->{program_end_time_enable} ? () : (class => 'off'), $v;
   }
   if($n eq 'program_end_time_enable') {
     a href => '#', onclick => sprintf('return conf_set_remove("home", %d, "%s", "%s", this, 0)', $d->{number}, $n, $v?0:1),
