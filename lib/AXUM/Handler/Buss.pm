@@ -164,6 +164,10 @@ sub ajax {
     $set{"$buss_names[$f->{item}-1]_pre_post = ?"} = $f->{$f->{field}};
     $self->dbExec('UPDATE module_config !H WHERE number <= dsp_count()*32 AND console = (SELECT console FROM buss_config WHERE number = ?)', \%set, $f->{item});
 
+    $self->dbExec('INSERT INTO recent_changes (change, arguments)
+                   SELECT \'set_module_pre_level\', number||\' \'||? FROM module_config
+                   WHERE number <= dsp_count()*32 AND console = (SELECT console FROM buss_config WHERE number = ?)', $f->{item}, $f->{item});
+
     _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, count => 1};
   } else {
     my %set;
