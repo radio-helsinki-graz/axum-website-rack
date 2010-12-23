@@ -87,7 +87,9 @@ sub ajax {
   my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|program_end_time program_end_time_enable|;
   $self->dbExec('UPDATE console_config !H WHERE number = ?', \%set, $f->{item});
 
-  _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}};
+  my $enable = $self->dbRow('SELECT program_end_time_enable FROM console_config WHERE number = ?', $f->{item});
+
+  _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, program_end_time_enable => $enable->{program_end_time_enable}};
 }
 
 
