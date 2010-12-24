@@ -27,7 +27,7 @@ sub _col {
     (my $jsval = $v) =~ s/\\/\\\\/g;
     $v =~ s/"/\\"/g;
     a href => '#', onclick => sprintf('return conf_text("system/mambanet", "%s", "%s", "%s", this)', $c->{addr}, $n, $jsval),
-      $n eq 'engine_addr' && $v eq '00000000' ? (class => 'off') : (), $v;
+      (($n eq 'engine_addr' && $v eq '00000000') or not defined $v) ? (class => 'off') : (), $v ? ($v) : ('None');
   }
   elsif ($n eq 'id') {
     if ($c->{conf_change} and $c->{temp_cnt}) {
