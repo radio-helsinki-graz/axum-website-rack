@@ -41,7 +41,7 @@ sub _col {
   }
   if($n eq 'input_gain') {
     a href => '#', onclick => sprintf('return conf_level("config/source", %d, "input_gain", %f, this)', $d->{number}, $v),
-      $v == 30 ? (class => 'off') : (), sprintf '%.1f dB', $v;
+      $v == $d->{def} ? (class => 'off') : (), sprintf '%.1f dB', $v;
   }
   if($n eq 'input_phantom' || $n eq 'input_pad') {
     a href => '#', onclick => sprintf('return conf_set("config/source", %d, "%s", "%s", this)', $d->{number}, $n, $v?0:1),
@@ -262,9 +262,15 @@ sub source {
         }
       end;
       td;
-        $t = $self->dbRow("SELECT COUNT(*) FROM node_config WHERE (func).type = 5 AND (func).seq = $s->{number}-1 AND (func).func = 62");
+        $t = $self->dbRow("SELECT COUNT(*), MAX((actuator_min).fl) AS min, MIN((actuator_max).fl) AS max, MIN((actuator_def).fl) AS def
+                           FROM node_config n
+                           JOIN addresses a ON n.addr = a.addr
+                           JOIN templates t ON (a.id).man = t.man_id AND (a.id).prod = t.prod_id AND n.firm_major = t.firm_major AND n.object = t.number
+                           WHERE (func).type = 5 AND (func).seq = $s->{number}-1 AND (func).func = 62");
+        $s->{def} = $t->{def};
         if ($t->{count}) {
           _col 'input_gain', $s;
+          txt " ($t->{min}..$t->{max} dB)";
         } else {
           txt '-';
         }
@@ -356,6 +362,18 @@ sub ajax {
     #_col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
     txt 'Wait for reload';
   } else {
+
+    if ($f->{field} eq 'input_gain') {
+      my $t = $self->dbRow("SELECT COUNT(*), MAX((actuator_min).fl) AS min, MIN((actuator_max).fl) AS max, MIN((actuator_def).fl) AS def
+                            FROM node_config n
+                            JOIN addresses a ON n.addr = a.addr
+                            JOIN templates t ON (a.id).man = t.man_id AND (a.id).prod = t.prod_id AND n.firm_major = t.firm_major AND n.object = t.number
+                            WHERE (func).type = 5 AND (func).seq = $f->{item}-1 AND (func).func = 62");
+      $f->{input_gain} = $t->{min} if ($f->{input_gain} < $t->{min});
+      $f->{input_gain} = $t->{max} if ($f->{input_gain} > $t->{max});
+      $f->{def} = $t->{def};
+    }
+
     my %set;
     defined $f->{$_} and (((($_ =~ /default_src_preset/) or ($_ =~ /related_dest/))and ($f->{$_} == 0)) ? ($set{"$_ = NULL"} = $f->{$_}) : ($set{"$_ = ?"} = $f->{$_}))
       for(qw|label input_phantom input_pad input_gain default_src_preset start_trigger stop_trigger related_dest|, (map "redlight$_", 1..8), (map "monitormute$_", 1..16));
@@ -375,6 +393,8 @@ sub ajax {
     } elsif ($f->{field} =~ /related_dest/) {
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} },
         $f->{field} =~ /related_dest/ ? $self->dbAll(q|SELECT number, label FROM dest_config ORDER BY pos|) : ();
+    } elsif ($f->{field} =~ /input_gain/) {
+      _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}}, def => $f->{def}};
     } else {
       _col $f->{field}, { number => $f->{item}, $f->{field} => $f->{$f->{field}} };
     }
