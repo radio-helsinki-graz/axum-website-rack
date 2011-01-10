@@ -336,9 +336,9 @@ sub _dyntable {
    Tr;
     th 'AGC ratio';
     td;
-     input type => 'text', class => 'text', size => 4, name => "agc_amount",
-        value => $d->{agc_amount};
-     txt ' %';
+     txt '1:';
+     input type => 'text', class => 'text', size => 4, name => "agc_ratio",
+        value => sprintf("%1.3f", $d->{agc_ratio});
     end;
    end;
    Tr;
@@ -455,7 +455,7 @@ sub conf {
       use_insert_preset, insert_source, insert_on_off,
       use_phase_preset, phase, phase_on_off,
       use_mono_preset, mono, mono_on_off,
-      use_dyn_preset, d_exp_threshold, agc_amount, agc_threshold, dyn_on_off,
+      use_dyn_preset, d_exp_threshold, agc_ratio, agc_threshold, dyn_on_off,
       use_mod_preset, mod_level, mod_on_off,
       use_eq_preset, eq_on_off,
       eq_band_1_range, eq_band_1_level,  eq_band_1_freq, eq_band_1_bw, eq_band_1_type,
@@ -722,12 +722,12 @@ sub dynajax {
   my @num = (regex => [ qr/-?[0-9]*(\.[0-9]+)?/, 0 ]);
   my $f = $self->formValidate(
     { name => "d_exp_threshold", @num },
-    { name => "agc_amount", template => 'int' },
+    { name => "agc_ratio", regex => [ qr/[0-9]*(\.[0-9]+)?/, 0 ] },
     { name => "agc_threshold", @num },
   );
   return 404 if $f->{_err};
 
-  my %set = map +("$_ = ?" => $f->{$_}), "d_exp_threshold", "agc_amount", "agc_threshold";
+  my %set = map +("$_ = ?" => $f->{$_}), "d_exp_threshold", "agc_ratio", "agc_threshold";
 
   $self->dbExec('UPDATE module_config !H WHERE number = ?', \%set, $nr);
   _dyntable $f;
@@ -826,7 +826,7 @@ sub m2cajax {
    $set{"use_dyn_preset = o.use_dyn_preset"} = 0;
    $set{"dyn_on_off = o.dyn_on_off"} = 0;
    $set{"d_exp_threshold = o.d_exp_threshold"} = 0;
-   $set{"agc_amount = o.agc_amount"} = 0;
+   $set{"agc_ratio = o.ratio"} = 0;
    $set{"agc_threshold = o.agc_threshold"} = 0;
   }
   if ($f->{field} eq 'routing') {
