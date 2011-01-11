@@ -338,7 +338,7 @@ sub _dyntable {
     td;
      txt '1:';
      input type => 'text', class => 'text', size => 4, name => "agc_ratio",
-        value => sprintf("%1.3f", $d->{agc_ratio});
+        value => sprintf("%1.3g", $d->{agc_ratio});
     end;
    end;
    Tr;
