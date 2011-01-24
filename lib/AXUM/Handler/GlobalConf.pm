@@ -74,7 +74,7 @@ sub _col_ip {
   if (($n eq 'udp_port') or ($n eq 'tcp_port')) {
     a href => '#', onclick => sprintf('return conf_text("config/itf", 0, "%s", "%s", this)', $n, $v), $v;
   }
-  if (($n eq 'UDP') or ($n eq 'TCP')) {
+  if (($n eq 'UDP') or ($n eq 'TCP') or ($n eq 'ETH')) {
     a href => '#', onclick => sprintf('return conf_set("config/itf", 0, "%s", "%s", this)', $n, $v->{$n}?0:1), $v->{$n} ? ('y') : ('n');
   }
 }
@@ -255,7 +255,7 @@ sub ipclock
    Tr; th ''; th 'Enable'; th 'Address'; end;
    Tr;
     th 'Ethernet';
-    td; txt $server_active->{'ETH'} ? ('y') : ('n'); end;
+    td; _col_ip 'ETH', $server_active; end;
     td "$eth - $mac";
    end;
    Tr;
@@ -541,6 +541,7 @@ sub set_itf {
     { name => 'field', required => '1', template => 'asciiprint' },
     { name => 'udp_port', required => '0', regex => [ qr/([0-9]{2,5})/ ] },
     { name => 'tcp_port', required => '0', regex => [ qr/([0-9]{2,5})/ ] },
+    { name => 'ETH', required => '0', enum => [ 0, 1 ] },
     { name => 'UDP', required => '0', enum => [ 0, 1 ] },
     { name => 'TCP', required => '0', enum => [ 0, 1 ] },
   );
@@ -552,6 +553,7 @@ sub set_itf {
   for my $i (0..$#array) {
     $array[$i] =~ s/^UDPARG="-s (.*)"/UDPARG="-s $f->{udp_port}"/ if defined $f->{udp_port};
     $array[$i] =~ s/^TCPARG="-t (.*)"/TCPARG="-t $f->{tcp_port}"/ if defined $f->{tcp_port};
+    $array[$i] =~ s/^USEETH=(.*)/USEETH=$f->{ETH}/ if defined $f->{ETH};
     $array[$i] =~ s/^USEUDP=(.*)/USEUDP=$f->{UDP}/ if defined $f->{UDP};
     $array[$i] =~ s/^USETCP=(.*)/USETCP=$f->{TCP}/ if defined $f->{TCP};
   }
