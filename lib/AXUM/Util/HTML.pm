@@ -68,11 +68,11 @@ sub htmlHeader {
          }
          if ($o{page} eq 'surface') {
            my $label = $self->dbRow(q|SELECT name FROM addresses WHERE addr = ?|, oct "0x$o{section}");
-           a href => "/surface/$o{section}", "Node '$label->{name}'";
+           a href => "/config/surface/$o{section}", "Node '$label->{name}'";
          }
          if ($o{page} eq 'rack') {
            my $label = $self->dbRow(q|SELECT name FROM addresses WHERE addr = ?|, oct "0x$o{section}");
-           a href => "/rack/$o{section}", "Address $o{section}";
+           a href => "/config/rack/$o{section}", "Address $o{section}";
          }
        }
      }
