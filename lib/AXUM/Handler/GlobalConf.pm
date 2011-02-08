@@ -508,7 +508,7 @@ sub set_ntp {
   open(FILE, '/etc/conf.d/ntp');
   @array = <FILE>;
   for my $i (0..$#array) {
-    $array[$i] =~ s/^server (.*)/server $f->{ntp_server}/;
+    $array[$i] =~ s/^server (.*) prefer iburst/server $f->{ntp_server} prefer iburst/;
   }
   my @result = grep(/[^\s]/,@array);
   close FILE;
