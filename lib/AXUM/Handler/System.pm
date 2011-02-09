@@ -4,6 +4,7 @@ package AXUM::Handler::System;
 use strict;
 use warnings;
 use YAWF ':html';
+use POSIX qw(strftime);
 
 
 YAWF::register(
@@ -12,6 +13,7 @@ YAWF::register(
   qr{system/versions} => \&versions,
   qr{system/password} => \&password,
   qr{system/ssh} => \&ssh,
+  qr{system/logs} => \&logs,
   qr{ajax/system} => \&ajax,
   qr{ajax/system/account} => \&set_account,
   qr{ajax/system/user_level} => \&set_user_level,
@@ -38,6 +40,7 @@ sub system {
    Tr; th $i++; td; a href => '#', onclick => "window.location = 'http://'+window.location.host+':6565'", 'Download backup'; end; end;
    Tr; th $i++; td; a href => '/system/password', 'Change web accounts'; end; end;
    Tr; th $i++; td; a href => '/system/ssh', 'SSH'; end; end;
+   Tr; th $i++; td; a href => '/system/logs', 'Log files'; end; end;
   end;
   $self->htmlFooter;
 }
@@ -387,6 +390,33 @@ sub server_state {
   open(FILE, '>/etc/hosts.allow');
   print FILE @result;
   close FILE;
+}
+
+sub logs {
+  my $self = shift;
+
+  my $f = $self->formValidate(
+    { name => 'filename', template => 'asciiprint' },
+  );
+
+  if ($f->{_err}) {
+    $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system', page => 'logs');
+
+    table;
+     Tr; th colspan => 5, $self->OEMFullProductName().' log files'; end;
+     Tr; td; a href => '/system/logs?filename=axum-address.log', 'Address server'; end; end;
+     Tr; td; a href => '/system/logs?filename=axum-engine.log', 'Engine'; end; end;
+     Tr; td; a href => '/system/logs?filename=axum-gateway.log', 'Gateway'; end; end;
+     Tr; td; a href => '/system/logs?filename=axum-learner.log', 'Learner'; end; end;
+     Tr; td; a href => '/system/logs?filename=postgresql.log', 'PostGreSQL'; end; end;
+    end;
+  } else {
+    txt "Log file '$f->{filename}.' download at ".strftime("%a %b %e %H:%M:%S %Y", gmtime);
+    br; br;
+    txt `cat /var/log/$f->{filename}`;
+  }
+
+  $self->htmlFooter;
 }
 
 
