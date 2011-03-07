@@ -27,9 +27,10 @@ sub _col {
     a href => '#', onclick => sprintf('return conf_select("config/globalconf", 0, "samplerate", %d, this, "samplerates")', $v),
       sprintf '%.1f kHz', $v/1000;
   }
-  if($n eq 'ext_clock') {
-    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "ext_clock", %d, this)', $v?0:1),
-      $v ? 'On' : 'Off';
+  if($n eq 'ext_clock_addr') {
+    $v = 0 if $v eq 'NULL';
+    a href => '#', onclick => sprintf('return conf_set("config/globalconf", 0, "ext_clock_addr", %d, this)', 0),
+      $v ? (sprintf 'Extern (0x%08X)', $v) : ('Intern');
   }
   if($n eq 'headroom') {
     txt sprintf '%.1f dB', $v;
@@ -83,7 +84,7 @@ sub _col_ip {
 sub conf {
   my $self = shift;
 
-  my $conf = $self->dbRow('SELECT samplerate, ext_clock, headroom, level_reserve, auto_momentary, startup_state
+  my $conf = $self->dbRow('SELECT samplerate, ext_clock_addr, headroom, level_reserve, auto_momentary, startup_state
                            FROM global_config');
   my $consoles = $self->dbAll('SELECT number, name, location, contact FROM console_config ORDER BY number');
 
@@ -97,7 +98,7 @@ sub conf {
   table;
    Tr; th colspan => 2, 'Global configuration'; end;
    Tr; th 'Samplerate';    td; _col 'samplerate', $conf; end; end;
-   Tr; th 'Extern clock';  td; _col 'ext_clock', $conf; end; end;
+   Tr; th 'Clock master';  td; _col 'ext_clock_addr', $conf; end; end;
    Tr; th 'Headroom';      td; _col 'headroom', $conf; end; end;
    Tr; th 'Fader top level'; td; _col 'level_reserve', $conf; end; end;
    Tr; th 'Auto momentary'; td; _col 'auto_momentary', $conf; end; end;
@@ -133,7 +134,7 @@ sub ajax {
     { name => 'field', template => 'asciiprint' },
     { name => 'item', template => 'int' },
     { name => 'samplerate', required => 0, enum => [32000, 44100, 48000] },
-    { name => 'ext_clock', required => 0, enum => [0,1] },
+    { name => 'ext_clock_addr', required => 0, 'int' },
     { name => 'level_reserve', required => 0, enum => [0,10] },
     { name => 'auto_momentary', required => 0, enum => [0,1] },
     { name => 'startup_state', required => 0, enum => [0,1] },
@@ -144,7 +145,11 @@ sub ajax {
   return 404 if $f->{_err};
 
   if ($f->{item} == 0) {
-    my %set = map +("$_ = ?", $f->{$_}), grep defined $f->{$_}, qw|samplerate ext_clock level_reserve startup_state auto_momentary|;
+    if (defined $f->{ext_clock_addr}) {
+      $f->{ext_clock_addr} ? () : ($f->{ext_clock_addr} = 'NULL');
+    }
+    my %set;
+    map +($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_})), grep defined $f->{$_}, qw|samplerate ext_clock_addr level_reserve startup_state auto_momentary|;
     $self->dbExec('UPDATE global_config !H', \%set) if keys %set;
   } else {
     $f->{$f->{field}} = '' if not defined $f->{$f->{field}};

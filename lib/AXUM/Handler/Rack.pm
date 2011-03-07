@@ -109,8 +109,21 @@ sub list {
     (SELECT COUNT(*) FROM node_config n WHERE a.addr = n.addr AND a.firm_major = n.firm_major) AS config_cnt,
     (SELECT COUNT(*) FROM defaults d WHERE a.addr = d.addr AND a.firm_major = d.firm_major) AS default_cnt,
     (SELECT COUNT(*) FROM predefined_node_config p WHERE (a.id).man = p.man_id AND (a.id).prod = p.prod_id AND a.firm_major = p.firm_major) AS predefined_cfg_cnt,
-    (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt
-    FROM slot_config s JOIN addresses a ON a.addr = s.addr ORDER BY s.slot_nr');
+    (SELECT COUNT(*) FROM predefined_node_defaults d WHERE (a.id).man = d.man_id AND (a.id).prod = d.prod_id AND a.firm_major = d.firm_major) AS predefined_dflt_cnt,
+    (SELECT COUNT(*) FROM templates t WHERE t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major AND t.description = \'Enable word clock\') AS enable_word_clock,
+    (SELECT COUNT(*) FROM global_config g WHERE a.addr = g.ext_clock_addr) AS clock_master
+    FROM slot_config s JOIN addresses a ON a.addr = s.addr
+    UNION
+     (SELECT a.addr, name, 9999, 0, 0, active, 0 AS objects, 0 AS config_cnt, 0 AS default_cnt, 0 AS predefined_cfg_cnt, 0 AS predefined_dflt_cnt, 1,
+      (SELECT COUNT(*) FROM global_config g WHERE a.addr = g.ext_clock_addr) AS clock_master
+      FROM addresses a
+      JOIN templates t ON t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major AND t.description = \'Enable word clock\'
+      EXCEPT
+        (SELECT a.addr, name, 9999, 0, 0, active, 0 AS objects, 0 AS config_cnt, 0 AS default_cnt, 0 AS predefined_cfg_cnt, 0 AS predefined_dflt_cnt, 1,
+         (SELECT COUNT(*) FROM global_config g WHERE a.addr = g.ext_clock_addr) AS clock_master
+         FROM addresses a
+         JOIN slot_config s ON a.addr = s.addr))
+    ORDER by slot_nr;');
 
   $self->htmlHeader(title => 'Rack configuration', area => 'config', page => 'rack');
   div id => 'console_list', class => 'hidden';
@@ -119,9 +132,10 @@ sub list {
     end;
   end;
   table;
-   Tr; th colspan => 11, 'Rack configuration'; end;
+   Tr; th colspan => 12, 'Rack configuration'; end;
    Tr;
     th 'Slot';
+    th 'WC';
     th 'MambaNet Address';
     th 'Node name';
     th 'Inputs';
@@ -133,38 +147,47 @@ sub list {
    end;
    for my $c (@$cards) {
      Tr !$c->{active} ? (class => 'inactive') : ();
-      th $c->{slot_nr};
+      th $c->{slot_nr} != 9999 ? ($c->{slot_nr}) : (style => 'background: none; border: 0px');
+      td;
+       if ($c->{enable_word_clock}) {
+         input type => 'radio', name => 'WC', style => 'vertical-align: middle', $c->{clock_master} ? (checked => 'true') : (),
+         onclick => sprintf('return conf_set("config/rack", "%08X", "ext_clock", %d, this)', $c->{addr}, $c->{addr});
+       }
+      end;
       td sprintf '%08X', $c->{addr};
       td $c->{name};
-      td !$c->{input_ch_cnt} ? (class => 'inactive') : (), $c->{input_ch_cnt};
-      td !$c->{output_ch_cnt} ? (class => 'inactive') : (), $c->{output_ch_cnt};
-      td !$c->{default_cnt} ? (class => 'inactive') : (), $c->{default_cnt};
-      td !$c->{config_cnt} ? (class => 'inactive') : (), $c->{config_cnt};
-      td;
-       if($c->{objects}) {
-         a href => sprintf('/config/rack/%08x', $c->{addr}); lit 'configure &raquo;'; end;
-       } else {
-         a href => '#', class => 'off', 'no objects';
-       }
-      end;
-      td;
-       if($c->{objects} and ($c->{predefined_cfg_cnt} or $c->{predefined_dflt_cnt})) {
-         a href => '#', onclick => sprintf('return conf_predefined("%08X", this)', $c->{addr}), 'import';
-       } else {
-         a href => '#', class => 'off', 'no import data';
-       }
-      end;
-      td;
-       if($c->{objects} and $c->{config_cnt}) {
-         a href => '#', onclick => sprintf('return conf_text("config/rack", "%08X", "export", "Config name", this)', $c->{addr}), 'export';
-       } else {
-         a href => '#', class => 'off', 'no export data';
-       }
-      end;
-      td;
-        $c->{user_level_from_console} = 0 if not defined $c->{user_level_from_console};
-        a href => '#', onclick => sprintf('return conf_select("config/rack", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
-      end;
+      if ($c->{slot_nr} != 9999) {
+        td !$c->{input_ch_cnt} ? (class => 'inactive') : (), $c->{input_ch_cnt};
+        td !$c->{output_ch_cnt} ? (class => 'inactive') : (), $c->{output_ch_cnt};
+        td !$c->{default_cnt} ? (class => 'inactive') : (), $c->{default_cnt};
+        td !$c->{config_cnt} ? (class => 'inactive') : (), $c->{config_cnt};
+        td;
+         if($c->{objects}) {
+           a href => sprintf('/config/rack/%08x', $c->{addr}); lit 'configure &raquo;'; end;
+         } else {
+           a href => '#', class => 'off', 'no objects';
+         }
+        end;
+        td;
+         if($c->{objects} and ($c->{predefined_cfg_cnt} or $c->{predefined_dflt_cnt})) {
+           a href => '#', onclick => sprintf('return conf_predefined("%08X", this)', $c->{addr}), 'import';
+         } else {
+           a href => '#', class => 'off', 'no import data';
+         }
+        end;
+        td;
+         if($c->{objects} and $c->{config_cnt}) {
+           a href => '#', onclick => sprintf('return conf_text("config/rack", "%08X", "export", "Config name", this)', $c->{addr}), 'export';
+         } else {
+           a href => '#', class => 'off', 'no export data';
+         }
+        end;
+        td;
+          $c->{user_level_from_console} = 0 if not defined $c->{user_level_from_console};
+          a href => '#', onclick => sprintf('return conf_select("config/rack", "%08X", "%s", %d, this, "console_list")', $c->{addr}, 'user_level_from_console', $c->{user_level_from_console}), $user_level_from_names[$c->{user_level_from_console}];
+        end;
+      } else {
+      }
      end;
    }
   end;
@@ -572,6 +595,7 @@ sub ajax {
     { name => 'item', required => 1, regex => [qr/^[0-9a-f]{8}$/i] },
     { name => 'export', required => 0, maxlength => 32, minlength => 1 },
     { name => 'user_level_from_console', required =>0, enum => [0,1,2,3,4] },
+    { name => 'ext_clock', required => 0, 'int' },
   );
   return 404 if $f->{_err};
 
@@ -606,6 +630,9 @@ sub ajax {
     $self->dbExec("UPDATE addresses SET user_level_from_console = ? WHERE addr = ?", $f->{$f->{field}}, oct "0x$f->{item}");
     #used rack in the link, because surface/rack make no differenct for the user_level_from_console ajax communication
     a href => '#', onclick => sprintf('return conf_select("config/surface", "%08X", "%s", "%s", this, "console_list")', oct "0x$f->{item}", 'user_level_from_console', $f->{user_level_from_console}), $user_level_from_names[$f->{user_level_from_console}];
+  } elsif ($f->{field} eq 'ext_clock') {
+    $self->dbExec("UPDATE global_config SET ext_clock_addr = ?", $f->{$f->{field}});
+    txt "Done";
   }
 }
 
