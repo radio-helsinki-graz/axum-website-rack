@@ -472,7 +472,8 @@ sub reg {
 
   my $cards = $self->dbAll('SELECT a.active, a.name, a.parent, a.id, a.addr,
     (SELECT name FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_name,
-    (SELECT addr FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_addr
+    (SELECT addr FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_addr,
+    (SELECT active FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_active
     FROM slot_config s
     RIGHT JOIN addresses a ON a.addr = s.addr WHERE s.addr IS NULL AND ((a.parent).man != 1 OR (a.parent).prod != 12) AND NOT ((a.id).man=(a.parent).man AND (a.id).prod=(a.parent).prod AND (a.id).id=(a.parent).id)
     ORDER BY NULLIF((a.parent).man, 0), (a.parent).prod, (a.parent).id, NOT a.active, (a.id).man, (a.id).prod, (a.id).id');
@@ -494,7 +495,7 @@ sub reg {
          th 'Hex';
          th 'Dec';
        end;
-       Tr;
+       Tr !$c->{parent_active} ? (class => 'inactive') : ();
         td; !$c->{parent_name} ? (txt 'No parent') : (_col_reg 'name', {'name' => $c->{parent_name}, 'addr' => $c->{parent_addr} }); end;
         $c->{parent} =~ /\((\d+),(\d+),(\d+)\)/;
         td sprintf("%04X:%04X:%04X", $1, $2, $3);
