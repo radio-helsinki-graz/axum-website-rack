@@ -14,6 +14,7 @@ YAWF::register(
   qr{system/password} => \&password,
   qr{system/ssh} => \&ssh,
   qr{system/logs} => \&logs,
+  qr{system/reg} => \&reg,
   qr{ajax/system} => \&ajax,
   qr{ajax/system/account} => \&set_account,
   qr{ajax/system/user_level} => \&set_user_level,
@@ -41,6 +42,7 @@ sub system {
    Tr; th $i++; td; a href => '/system/password', 'Change web accounts'; end; end;
    Tr; th $i++; td; a href => '/system/ssh', 'SSH'; end; end;
    Tr; th $i++; td; a href => '/system/logs', 'Log files'; end; end;
+   Tr; th $i++; td; a href => '/system/reg', 'Register information'; end; end;
   end;
   $self->htmlFooter;
 }
@@ -419,6 +421,99 @@ sub logs {
   $self->htmlFooter;
 }
 
+sub _col_reg {
+  my($n, $c) = @_;
+  my $v = $c->{$n};
+
+  if($n eq 'name' || $n eq 'parent_name') {
+    (my $jsval = $v) =~ s/\\/\\\\/g;
+    $v =~ s/"/\\"/g;
+    a href => '#', onclick => sprintf('return conf_text("system/mambanet", "%s", "%s", "%s", this)', $c->{addr}, 'name', $jsval),
+      (not defined $v) ? (class => 'off') : (), $v ? ($v) : ('None');
+  }
+}
+
+
+sub reg {
+  my $self = shift;
+
+  my $cards = $self->dbAll('SELECT a.active, s.slot_nr, a.name, a.id, a.addr
+    FROM slot_config s JOIN addresses a ON a.addr = s.addr
+    ORDER BY s.slot_nr;');
+
+  $self->htmlHeader(title => $self->OEMFullProductName().' system pages', area => 'system', page => 'register');
+  table;
+   Tr; th colspan => 12, 'Rack configuration'; end;
+   Tr;
+    th '';
+    th '';
+    th colspan => 2, 'UniqueID';
+   end;
+   Tr;
+    th 'Slot';
+    th 'Node name';
+    th 'Hex';
+    th 'Dec';
+   end;
+   for my $c (@$cards) {
+     Tr !$c->{active} ? (class => 'inactive') : ();
+      th $c->{slot_nr} != 9999 ? ($c->{slot_nr}) : (style => 'background: none; border: 0px');
+      td; _col_reg 'name', $c; end;
+      if ($c->{slot_nr} != 9999) {
+        $c->{id} =~ /\((\d+),(\d+),(\d+)\)/;
+        td sprintf("%04X:%04X:%04X", $1, $2, $3);
+        td "$1.$2.$3";
+      } else {
+      }
+     end;
+   }
+  end;
+  br;br;
+
+  my $cards = $self->dbAll('SELECT a.active, a.name, a.parent, a.id, a.addr,
+    (SELECT name FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_name,
+    (SELECT addr FROM addresses b WHERE (b.id).man = (a.parent).man AND (b.id).prod = (a.parent).prod AND (b.id).id = (a.parent).id) AS parent_addr
+    FROM slot_config s
+    RIGHT JOIN addresses a ON a.addr = s.addr WHERE s.addr IS NULL AND ((a.parent).man != 1 OR (a.parent).prod != 12) AND NOT ((a.id).man=(a.parent).man AND (a.id).prod=(a.parent).prod AND (a.id).id=(a.parent).id)
+    ORDER BY NULLIF((a.parent).man, 0), (a.parent).prod, (a.parent).id, NOT a.active, (a.id).man, (a.id).prod, (a.id).id');
+  table;
+   Tr; th colspan => 3, 'Surface configuration'; end;
+   my $prev_parent='';
+   for my $c (@$cards) {
+     $c->{parent} =~ s/\((\d+),(\d+),(\d+)\)/sprintf($1?'%04X:%04X:%04X':'-', $1, $2, $3)/e;
+     if($c->{parent} ne $prev_parent) {
+       if ($prev_parent) {
+         Tr class => 'empty'; th colspan => 5; end;
+       }
+       Tr;
+         th '';
+         th colspan => 2, 'Unique ID';
+       end;
+       Tr;
+         th 'Node name';
+         th 'Hex';
+         th 'Dec';
+       end;
+       Tr;
+        td; !$c->{parent_name} ? (txt 'No parent') : (_col_reg 'name', {'name' => $c->{parent_name}, 'addr' => $c->{parent_addr} }); end;
+        $c->{parent} =~ /\((\d+),(\d+),(\d+)\)/;
+        td sprintf("%04X:%04X:%04X", $1, $2, $3);
+        td "$1.$2.$3";
+       end;
+       $prev_parent = $c->{parent};
+     }
+
+     Tr !$c->{active} ? (class => 'inactive') : ();
+        td; _col_reg 'name', $c; end;
+        $c->{id} =~ /\((\d+),(\d+),(\d+)\)/;
+        td sprintf("%04X:%04X:%04X", $1, $2, $3);
+        td "$1.$2.$3";
+     end;
+   }
+  end;
+
+  $self->htmlFooter;
+}
 
 1;
 

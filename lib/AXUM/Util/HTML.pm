@@ -84,6 +84,8 @@ sub htmlHeader {
        a href => '/system/versions', 'Package versions' if $o{page} eq 'versions';
        a href => '/system/password', 'Change web accounts' if $o{page} eq 'password';
        a href => '/system/ssh', 'SSH' if $o{page} eq 'ssh';
+       a href => '/system/logs', 'Log files' if $o{page} eq 'logs';
+       a href => '/system/reg', 'Register information' if $o{page} eq 'register';
      }
 
 
