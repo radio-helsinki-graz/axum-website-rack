@@ -117,7 +117,7 @@ sub list {
      (SELECT a.addr, name, 9999, 0, 0, active, 0 AS objects, 0 AS config_cnt, 0 AS default_cnt, 0 AS predefined_cfg_cnt, 0 AS predefined_dflt_cnt, 1,
       (SELECT COUNT(*) FROM global_config g WHERE a.addr = g.ext_clock_addr) AS clock_master
       FROM addresses a
-      JOIN templates t ON t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major AND t.description = \'Enable word clock\'
+      JOIN templates t ON t.man_id = (a.id).man AND t.prod_id = (a.id).prod AND t.firm_major = a.firm_major AND t.description = \'Enable word clock\' AND a.active = TRUE
       EXCEPT
         (SELECT a.addr, name, 9999, 0, 0, active, 0 AS objects, 0 AS config_cnt, 0 AS default_cnt, 0 AS predefined_cfg_cnt, 0 AS predefined_dflt_cnt, 1,
          (SELECT COUNT(*) FROM global_config g WHERE a.addr = g.ext_clock_addr) AS clock_master
