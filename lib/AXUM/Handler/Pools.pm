@@ -150,10 +150,10 @@ sub ajax_presetpools {
   my %set;
   defined $f->{$_} and ($f->{$_} eq 'NULL' ? ($set{"$_ = NULL"} = 0) :($set{"$_ = ?"} = $f->{$_})) for (map("pool$_", 1..8));
 
-  if ($f->{item} < 2) {
+  if ($f->{item} < 1) {
     $self->dbExec('UPDATE preset_pool !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   } else {
-    $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $f->{item}-1) if keys %set;
+    $self->dbExec('UPDATE src_preset !H WHERE number = ?', \%set, $f->{item}) if keys %set;
   }
 
   _col "preset$f->{field}", { number => $f->{item}, $f->{field} => $f->{$f->{field}}};
